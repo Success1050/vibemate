@@ -11,9 +11,9 @@ export default function Index() {
   return (
     <ScreenWrapper bg={theme.colors.activetabbarcolor}>
       <View style={styles.container}>
-        <Image source={require("../assets/bsk-logo.png")} style={styles.logo} />
-        <View style={{ gap: 3 }}>
-          <Text style={styles.text}>Welcome to BSK</Text>
+        <Image source={require("../assets/vibemate.png")} style={styles.logo} />
+        <View style={{ gap: 3, marginTop: 12 }}>
+          <Text style={styles.text}>Welcome to Vibemate</Text>
           <Button
             title={"Get started"}
             onpress={() => router.push("/Login")}

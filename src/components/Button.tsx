@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderCurve: "continuous",
     borderRadius: theme.radius.xl,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.activetabbarcolor,
   },
 
   text: {

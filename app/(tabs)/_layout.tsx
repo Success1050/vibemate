@@ -10,17 +10,17 @@ const TabsLayout = () => {
       screenOptions={{
         headerStyle: false,
         tabBarStyle: {
-          backgroundColor: theme.colors.background,
+          backgroundColor: theme.colors.activetabbarcolor,
           borderTopWidth: 0,
           elevation: 0,
           shadowOpacity: 0,
         },
-        tabBarActiveTintColor: theme.colors.activetabbarcolor,
-        tabBarInactiveTintColor: theme.colors.text,
+        tabBarActiveTintColor: "#FBBF24",
+        tabBarInactiveTintColor: "#fff",
       }}
     >
       <Tabs.Screen
-        name="home"
+        name="Home"
         options={{
           title: "Home",
           tabBarIcon: ({ color, size }) => {
@@ -30,11 +30,22 @@ const TabsLayout = () => {
           },
         }}
       />
+      <Tabs.Screen
+        name="Chatscreen"
+        options={{
+          title: "Chats",
+          tabBarIcon: ({ color, size }) => {
+            return (
+              <MaterialCommunityIcons name="chat" size={size} color={color} />
+            );
+          },
+        }}
+      />
 
       <Tabs.Screen
-        name="Matches"
+        name="BookingDetails"
         options={{
-          title: "Matches",
+          title: "My Bookings",
           tabBarIcon: ({ color, size }) => {
             return (
               <MaterialCommunityIcons name="heart" size={size} color={color} />
@@ -43,12 +54,16 @@ const TabsLayout = () => {
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="ProfileView"
         options={{
-          title: "Settings",
+          title: "Profile",
           tabBarIcon: ({ color, size }) => {
             return (
-              <MaterialCommunityIcons name="cog" size={size} color={color} />
+              <MaterialCommunityIcons
+                name="account"
+                size={size}
+                color={color}
+              />
             );
           },
         }}

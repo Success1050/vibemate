@@ -1,7 +1,8 @@
 import { transactions } from "@/mockData";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import TransactionItem from "@/src/components/TransactionItem";
-import { Star, Wallet } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import { Wallet } from "lucide-react-native";
 import React from "react";
 import {
   ScrollView,
@@ -12,6 +13,7 @@ import {
 } from "react-native";
 
 export default function WalletScreen() {
+  const router = useRouter();
   return (
     <ScreenWrapper bg="white">
       <ScrollView
@@ -22,7 +24,10 @@ export default function WalletScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Wallet</Text>
-          <TouchableOpacity style={styles.withdrawButton}>
+          <TouchableOpacity
+            style={styles.withdrawButton}
+            onPress={() => router.push("/topupScreen")}
+          >
             <Text style={styles.withdrawButtonText}>Withdraw Funds</Text>
           </TouchableOpacity>
         </View>
@@ -38,26 +43,6 @@ export default function WalletScreen() {
                 </View>
                 <Wallet size={32} color="#bfdbfe" />
               </View>
-            </View>
-            <View style={[styles.balanceCard, styles.monthlyCard]}>
-              <View style={styles.cardContent}>
-                <View>
-                  <Text style={styles.monthlyCardLabel}>This Month</Text>
-                  <Text style={styles.monthlyCardAmount}>$3,650.00</Text>
-                </View>
-                <View style={styles.arrowIcon}>
-                  <Text style={styles.arrowText}>↑</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-          <View style={[styles.balanceCard, styles.totalEarnedCard]}>
-            <View style={styles.cardContent}>
-              <View>
-                <Text style={styles.totalEarnedLabel}>Total Earned</Text>
-                <Text style={styles.totalEarnedAmount}>$12,480.00</Text>
-              </View>
-              <Star size={32} color="#e9d5ff" />
             </View>
           </View>
         </View>

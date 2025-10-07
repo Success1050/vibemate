@@ -1,0 +1,277 @@
+import { wp } from "@/src/helpers/command";
+import { StyleSheet } from "react-native";
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: wp(7),
+    paddingBottom: 20,
+    backgroundColor: "#FFFFFF",
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  profileImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+  },
+  headerInfo: {
+    flex: 1,
+  },
+  welcomeText: {
+    fontSize: 14,
+    color: "#8E8E93",
+  },
+  providerName: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1D1D1F",
+  },
+  notificationButton: {
+    position: "relative",
+    padding: 8,
+  },
+  notificationBadge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "#FF3B30",
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  notificationBadgeText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  statsContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    gap: 15,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1D1D1F",
+    marginLeft: 8,
+  },
+  statLabel: {
+    fontSize: 14,
+    color: "#8E8E93",
+    marginBottom: 4,
+  },
+  statChange: {
+    fontSize: 12,
+    color: "#34C759",
+  },
+  statSubValue: {
+    fontSize: 12,
+    color: "#8E8E93",
+  },
+  quickStats: {
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    marginHorizontal: 20,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  quickStatItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  quickStatNumber: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1D1D1F",
+  },
+  quickStatLabel: {
+    fontSize: 12,
+    color: "#8E8E93",
+    marginTop: 4,
+  },
+  quickStatDivider: {
+    width: 1,
+    backgroundColor: "#E5E5EA",
+    marginHorizontal: 16,
+  },
+  sectionContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1D1D1F",
+  },
+  seeAllText: {
+    fontSize: 14,
+    color: "#007AFF",
+    fontWeight: "600",
+  },
+  bookingCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  bookingHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  clientInfo: {
+    flexDirection: "row",
+    flex: 1,
+  },
+  clientImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  clientDetails: {
+    flex: 1,
+  },
+  clientName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1D1D1F",
+  },
+  bookingDate: {
+    fontSize: 14,
+    color: "#8E8E93",
+    marginTop: 2,
+  },
+  bookingLocation: {
+    fontSize: 12,
+    color: "#8E8E93",
+    marginTop: 2,
+  },
+  bookingAmount: {
+    alignItems: "flex-end",
+  },
+  amountText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#34C759",
+  },
+  durationText: {
+    fontSize: 12,
+    color: "#8E8E93",
+    marginTop: 2,
+  },
+  bookingFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+  actionButtons: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  actionButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  declineButton: {
+    backgroundColor: "#FF3B3020",
+  },
+  acceptButton: {
+    backgroundColor: "#34C759",
+  },
+  declineButtonText: {
+    color: "#FF3B30",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  acceptButtonText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  quickActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  quickActionButton: {
+    flex: 1,
+    minWidth: "45%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  quickActionText: {
+    fontSize: 12,
+    color: "#1D1D1F",
+    marginTop: 8,
+    fontWeight: "500",
+    textAlign: "center",
+  },
+});

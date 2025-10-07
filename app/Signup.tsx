@@ -1,3 +1,4 @@
+import { supabase } from "@/lib/supabase";
 import Backbutton from "@/src/components/Backbutton";
 import Button from "@/src/components/Button";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
@@ -8,10 +9,11 @@ import { hp, wp } from "@/src/helpers/command";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Feather from "@expo/vector-icons/Feather";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useRef, useState } from "react";
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -20,48 +22,47 @@ import {
   View,
 } from "react-native";
 
+type CreateDedicatedAccountParams = {
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+};
+
 const Signup = () => {
-  const [role, setRole] = useState("customer");
+  const [role, setRole] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const router = useRouter();
-  const namerRef = useRef("");
   const emailRef = useRef("");
   const passwordRef = useRef("");
 
   console.log(emailRef.current);
   console.log(passwordRef.current);
 
-  const [isLoading, setIsLoading] = useState(false);
-
   const onsubmit = async () => {
-    // if (!emailRef.current || !passwordRef.current || !namerRef.current) {
-    //   Alert.alert("Signup", "Please fill all the fields");
-    //   return;
-    // }
-    // let name = namerRef.current.trim();
-    // let email = emailRef.current.trim();
-    // let password = passwordRef.current.trim();
-    // setIsLoading(true);
-    // try {
-    //   const {
-    //     data: { session },
-    //     error,
-    //   } = await supabase.auth.signUp({
-    //     email,
-    //     password,
-    //     options: {
-    //       data: {
-    //         name,
-    //       },
-    //     },
-    //   });
-    //   if (error) {
-    //     Alert.alert("Signup", error.message);
-    //   }
-    // } catch (error) {
-    // } finally {
-    //   setIsLoading(false);
-    // }
+    if (!emailRef || !passwordRef || !role) {
+      return Alert.alert("invalid", "please fill all the details");
+    }
+    const email = emailRef.current.trim();
+    const password = passwordRef.current.trim();
+
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { userRole: role } },
+      });
+      if (error) {
+        return console.log(error);
+      }
+      console.log("successfully");
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -83,18 +84,10 @@ const Signup = () => {
               Please fill the details to create an account
             </Text>
 
-            {/* Full Name */}
-            <TextInputFields
-              icon={<AntDesign name="user" size={24} color="black" />}
-              placeholder={"Enter your fullname"}
-              onchangeText={(value) => (namerRef.current = value)}
-              secureTextEntry={false}
-              keyboardType="email-address"
-            />
-
             {/* Email */}
             <TextInputFields
               icon={<AntDesign name="mail" size={24} color="black" />}
+              color="#000"
               placeholder={"Enter your email"}
               onchangeText={(value) => (emailRef.current = value)}
               secureTextEntry={false}
@@ -104,21 +97,20 @@ const Signup = () => {
             {/* Password */}
             <TextInputFields
               icon={<Feather name="lock" size={24} color="black" />}
+              color="#000"
               placeholder={"Enter your password"}
               onchangeText={(value) => (passwordRef.current = value)}
               secureTextEntry={true}
             />
-
-            <Link href={"/Home"}>Home</Link>
 
             {/* Role Selection */}
             <Text style={[styles.sectionLabel]}>I want to:</Text>
             <TouchableOpacity
               style={[
                 styles.roleOption,
-                role === "customer" && styles.roleSelected,
+                role === "booker" && styles.roleSelected,
               ]}
-              onPress={() => setRole("customer")}
+              onPress={() => setRole("booker")}
             >
               <Ionicons name="person" size={20} color="#2563eb" />
               <View style={{ marginLeft: 10 }}>
@@ -130,11 +122,8 @@ const Signup = () => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[
-                styles.roleOption,
-                role === "provider" && styles.roleSelected,
-              ]}
-              onPress={() => setRole("provider")}
+              style={[styles.roleOption, role === "os" && styles.roleSelected]}
+              onPress={() => setRole("os")}
             >
               <MaterialIcons name="work" size={20} color="#2563eb" />
               <View style={{ marginLeft: 10 }}>
@@ -190,7 +179,7 @@ const Signup = () => {
             <View style={styles.footer}>
               <Text style={styles.footerText}>Already have an account?</Text>
 
-              <Pressable onPress={() => router.push("/Login")}>
+              <Pressable onPress={() => router.push("/login")}>
                 <Text
                   style={[
                     styles.footerText,
@@ -201,19 +190,6 @@ const Signup = () => {
                   ]}
                 >
                   Login
-                </Text>
-              </Pressable>
-              <Pressable onPress={() => router.push("/profile/View")}>
-                <Text
-                  style={[
-                    styles.footerText,
-                    {
-                      color: theme.colors.activetabbarcolor,
-                      fontWeight: "semibold",
-                    },
-                  ]}
-                >
-                  profile
                 </Text>
               </Pressable>
             </View>

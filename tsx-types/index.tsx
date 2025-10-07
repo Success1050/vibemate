@@ -1,3 +1,5 @@
+import { ImageSourcePropType } from "react-native";
+
 export interface Notification {
   id: string;
   type: "booking" | "payment" | "message" | "review";
@@ -7,6 +9,26 @@ export interface Notification {
   read: boolean;
   avatar?: string;
 }
+
+export type EarningsData = {
+  thisMonth: number;
+  lastMonth: number;
+  totalBookings: number;
+  pendingBookings: number;
+  completedBookings: number;
+};
+
+export type OSBookingOrder = {
+  id: string;
+  clientName: string;
+  clientImage: ImageSourcePropType; // because React Native <Image> needs ImageSourcePropType
+  date: string; // ISO string like "2025-10-02"
+  time: string; // e.g. "2:30 PM"
+  location: string;
+  amount: number;
+  duration: number; // hours
+  status: "pending" | "accepted" | "completed" | "cancelled";
+};
 
 export interface Transaction {
   id: string;
@@ -20,6 +42,13 @@ export interface Transaction {
 export interface TimeSlot {
   start: string;
   end: string;
+  isAvailable?: boolean;
+}
+
+export interface DateTimeSlot {
+  date: string;
+  timeSlots: TimeSlot[]; // ✅ fixed to array
+  isAvailable?: boolean;
 }
 
 export interface CalendarPickerProps {
@@ -28,6 +57,13 @@ export interface CalendarPickerProps {
   onDateTimeSelect: (date: string, time: TimeSlot) => void;
   selectedDate?: string;
   selectedTime?: TimeSlot;
+}
+
+export interface PricingSettings {
+  pricePerHour: number;
+  serviceFee: number;
+  minimumBookingHours: number;
+  maximumBookingHours: number;
 }
 
 export interface ServiceProvider {
@@ -39,7 +75,7 @@ export interface ServiceProvider {
   reviews: number;
   price: number;
   availability: "available" | "busy" | "offline";
-  category: string;
+  category?: string;
   gender: "male" | "female" | "other";
   featured: boolean;
   trending: boolean;

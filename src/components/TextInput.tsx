@@ -19,6 +19,7 @@ type textinputprops = {
   keyboardType?: KeyboardTypeOptions;
   value?: string | "";
   multiline?: boolean;
+  color: string;
 
   onchangeText: (text: string) => void;
 };
@@ -28,6 +29,7 @@ const TextInputFields = ({
   icon,
   inputRef,
   placeholder,
+  color,
   onchangeText,
   ...props
 }: textinputprops) => {
@@ -35,7 +37,7 @@ const TextInputFields = ({
     <View style={[styles.container, containerStyles && containerStyles]}>
       {icon && icon}
       <TextInput
-        style={{ flex: 1 }}
+        style={{ flex: 1, color: color }}
         placeholderTextColor={theme.colors.textLight}
         ref={inputRef && inputRef}
         placeholder={placeholder}

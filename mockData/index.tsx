@@ -140,6 +140,56 @@ export const chatMessages: Record<string, Message[]> = {
   ],
 };
 
+// mockData.ts
+import { OSBookingOrder } from "@/tsx-types";
+
+export const recentBookings: OSBookingOrder[] = [
+  {
+    id: "1",
+    clientName: "James Carter",
+    clientImage: require("@/assets/images/2.jpg"),
+    date: "2025-10-01",
+    time: "10:30 AM",
+    location: "Lagos, Nigeria",
+    amount: 7500,
+    duration: 2,
+    status: "pending",
+  },
+  {
+    id: "2",
+    clientName: "Amelia Brown",
+    clientImage: require("@/assets/images/3.jpg"),
+    date: "2025-09-30",
+    time: "3:00 PM",
+    location: "Abuja, Nigeria",
+    amount: 12000,
+    duration: 3,
+    status: "accepted",
+  },
+  {
+    id: "3",
+    clientName: "Michael Johnson",
+    clientImage: require("@/assets/images/4.jpg"),
+    date: "2025-09-28",
+    time: "1:00 PM",
+    location: "Port Harcourt, Nigeria",
+    amount: 5400,
+    duration: 1,
+    status: "completed",
+  },
+  {
+    id: "4",
+    clientName: "Sophia Williams",
+    clientImage: require("@/assets/images/5.jpg"),
+    date: "2025-09-25",
+    time: "11:00 AM",
+    location: "Enugu, Nigeria",
+    amount: 8500,
+    duration: 2,
+    status: "cancelled",
+  },
+];
+
 export const providers: ServiceProvider[] = [
   {
     id: 1,
@@ -280,5 +330,63 @@ export const userData = [
       phoneVerified: true,
       emailVerified: true,
     },
+  },
+];
+
+export const users = [
+  {
+    id: "4c9200c6-e178-4569-8777-cb64068febf8",
+    name: "Franca",
+    emoji: "💛",
+    rate: "60/min",
+    status: "offline",
+    image:
+      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300&h=400&fit=crop&crop=face",
+    hasRecharge: false,
+  },
+  {
+    id: 2,
+    name: "Love Love",
+    rate: "60/min",
+    status: "online",
+    image:
+      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300&h=400&fit=crop&crop=face",
+    hasRecharge: false,
+  },
+  {
+    id: 3,
+    name: "sweetchery",
+    rate: "60/min",
+    status: "offline",
+    image:
+      "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=300&h=400&fit=crop&crop=face",
+    hasRecharge: true,
+  },
+  {
+    id: 4,
+    name: "Tyler",
+    rate: "60/min",
+    status: "online",
+    image:
+      "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=300&h=400&fit=crop&crop=face",
+    hasRecharge: false,
+  },
+  {
+    id: 5,
+    name: "User5",
+    rate: "60/min",
+    status: "online",
+    image:
+      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&h=400&fit=crop&crop=face",
+    hasRecharge: false,
+  },
+  {
+    id: 6,
+    name: "User6",
+    rate: "60/min",
+    status: "online",
+    image:
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=400&fit=crop&crop=face",
+    hasRecharge: false,
   },
 ];

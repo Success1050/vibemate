@@ -1,0 +1,221 @@
+import { theme } from "@/src/constants/themes";
+import { StyleSheet } from "react-native";
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.activetabbarcolor,
+  },
+  keyboardAvoid: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 30,
+  },
+  header: {
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#fff",
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: "#fff",
+    textAlign: "center",
+  },
+  balanceCard: {
+    backgroundColor: "#FFFFFF",
+    marginHorizontal: 24,
+    marginBottom: 32,
+    padding: 24,
+    borderRadius: 16,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  balanceLabel: {
+    fontSize: 14,
+    color: "#fff",
+    marginBottom: 8,
+  },
+  balanceAmount: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#2E7D4F",
+  },
+  inputSection: {
+    marginHorizontal: 24,
+    marginBottom: 24,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#fff",
+    marginBottom: 12,
+  },
+  amountContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    borderWidth: 2,
+    borderColor: "#E5E5E5",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  currencySymbol: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#2E7D4F",
+    marginRight: 8,
+  },
+  amountInput: {
+    flex: 1,
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#2E7D4F",
+    paddingVertical: 16,
+  },
+  quickAmountSection: {
+    marginHorizontal: 24,
+    marginBottom: 24,
+  },
+  quickAmountLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#fff",
+    marginBottom: 12,
+  },
+  quickAmountButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  quickAmountButton: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    marginHorizontal: 4,
+    borderWidth: 2,
+    borderColor: "#E5E5E5",
+    alignItems: "center",
+  },
+  quickAmountButtonActive: {
+    backgroundColor: "#2E7D4F",
+    borderColor: "#2E7D4F",
+  },
+  quickAmountButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#2E7D4F",
+  },
+  quickAmountButtonTextActive: {
+    color: "#FFFFFF",
+  },
+  paymentMethods: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  paymentMethodButton: {
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: "#E5E5E5",
+    marginBottom: 8,
+  },
+  paymentMethodButtonActive: {
+    backgroundColor: "#2E7D4F",
+    borderColor: "#2E7D4F",
+  },
+  paymentMethodText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#fff",
+  },
+  paymentMethodTextActive: {
+    color: "#FFFFFF",
+  },
+  textInput: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 16,
+    color: "#1a1a1a",
+    borderWidth: 2,
+    borderColor: "#E5E5E5",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  notesInput: {
+    height: 80,
+    textAlignVertical: "top",
+  },
+  topUpButton: {
+    backgroundColor: "#2E7D4F",
+    marginHorizontal: 24,
+    paddingVertical: 18,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 16,
+    shadowColor: "#2E7D4F",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  topUpButtonDisabled: {
+    backgroundColor: "#2E7D4F",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+  },
+  topUpButtonText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+  },
+  securityNotice: {
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  securityText: {
+    fontSize: 14,
+    color: "#fff",
+    textAlign: "center",
+  },
+});

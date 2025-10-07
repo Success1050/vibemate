@@ -1,49 +1,47 @@
+import { supabase } from "@/lib/supabase";
 import Backbutton from "@/src/components/Backbutton";
 import Button from "@/src/components/Button";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import TextInputFields from "@/src/components/TextInput";
 import { theme } from "@/src/constants/themes";
 import { hp, wp } from "@/src/helpers/command";
-// import { supabase } from "@/lib/supabase";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Feather from "@expo/vector-icons/Feather";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 const Login = () => {
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const emailRef = useRef("");
   const passwordRef = useRef("");
 
   console.log(emailRef.current);
   console.log(passwordRef.current);
-
-  const [isLoading, setIsLoading] = useState(false);
-
   const onsubmit = async () => {
-    // if (!emailRef.current || !passwordRef.current) {
-    //   Alert.alert("Login", "Please fill all the fields");
-    //   return;
-    // }
-    // let email = emailRef.current.trim();
-    // let password = passwordRef.current.trim();
-    // setIsLoading(true);
-    // try {
-    //   const {
-    //     data: { session },
-    //     error,
-    //   } = await supabase.auth.signInWithPassword({ email, password });
-    //   if (error) {
-    //     return Alert.alert("Login", error.message);
-    //   }
-    //   console.log(session);
-    // } catch (error) {
-    //   console.log(error instanceof Error);
-    // } finally {
-    //   setIsLoading(false);
-    // }
+    if (!emailRef || !passwordRef) {
+      return Alert.alert("invalid", "please fill all the details");
+    }
+    const email = emailRef.current.trim();
+    const password = passwordRef.current.trim();
+
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) {
+        return console.log(error);
+      }
+      console.log("successfully logged in");
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -67,6 +65,7 @@ const Login = () => {
 
           <TextInputFields
             icon={<AntDesign name="mail" size={24} color="black" />}
+            color="#000"
             placeholder={"Enter your email"}
             onchangeText={(value) => (emailRef.current = value)}
             secureTextEntry={false}
@@ -74,6 +73,7 @@ const Login = () => {
           />
           <TextInputFields
             icon={<Feather name="lock" size={24} color="black" />}
+            color="#000"
             placeholder={"Enter your password"}
             onchangeText={(value) => (passwordRef.current = value)}
             secureTextEntry={true}
@@ -86,7 +86,7 @@ const Login = () => {
             title="Login"
             loading={isLoading}
             buttonStyle={{ backgroundColor: theme.colors.activetabbarcolor }}
-            onpress={onsubmit}
+            onpress={() => onsubmit()}
           />
         </View>
 
@@ -126,7 +126,7 @@ const Login = () => {
         {/* footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Don't have an account?</Text>
-          <Pressable onPress={() => router.push("/Signup")}>
+          <Pressable onPress={() => router.push("/signup")}>
             <Text
               style={[
                 styles.footerText,

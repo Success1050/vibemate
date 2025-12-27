@@ -16,7 +16,7 @@ export default function Index() {
           <Text style={styles.text}>Welcome to Vibemate</Text>
           <Button
             title={"Get started"}
-            onpress={() => router.push("/Login")}
+            onpress={() => router.push("/login")}
             buttonStyle={{ paddingHorizontal: wp(2), width: "fit-content" }}
           />
         </View>

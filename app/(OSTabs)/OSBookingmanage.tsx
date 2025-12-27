@@ -1,8 +1,17 @@
 // BookingManagement.tsx
+import { renderPricingTab } from "@/src/components/pricing";
+import {
+  getdateTimeSlots,
+  removedateslot,
+  removeTimeSlotFromDb,
+  setPricingDb,
+  upsertAvailability,
+} from "@/src/osActions/action";
+import { useApp } from "@/store";
 import { styles } from "@/styles/OSBookingmanage";
-import { DateTimeSlot, PricingSettings, TimeSlot } from "@/tsx-types";
+import { DateTimeSlot, Ospricesettings, PricingSettings, TimeSlot } from "@/tsx-types";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   Modal,
@@ -23,26 +32,39 @@ const BookingManagement = () => {
   const [newTimeSlot, setNewTimeSlot] = useState({ start: "", end: "" });
 
   // Store availability by specific dates instead of just days
-  const [dateTimeSlots, setDateTimeSlots] = useState<DateTimeSlot[]>([
-    {
-      date: "2025-09-10",
-      timeSlots: [{ start: "14:00", end: "18:00", isAvailable: true }],
-    },
-    {
-      date: "2025-09-12",
-      timeSlots: [{ start: "10:00", end: "14:00", isAvailable: true }],
-    },
-  ]);
+  const [dateTimeSlots, setDateTimeSlots] = useState<DateTimeSlot[]>([]);
 
-  const [pricing, setPricing] = useState<PricingSettings>({
-    pricePerHour: 150,
-    serviceFee: 25,
-    minimumBookingHours: 1,
-    maximumBookingHours: 8,
+  useEffect(() => {
+    const fetchDateTime = async () => {
+      const res = await getdateTimeSlots(userSession, role);
+      if (res && res.success) {
+        const withIds = (res.data ?? []).map((dateSlot: any) => ({
+          date: dateSlot.date,
+          timeSlots: (dateSlot.timeSlots || []).map(
+            (slot: any, idx: number) => ({
+              id: idx,
+              start: slot.start,
+              end: slot.end,
+              isAvailable: slot.isAvailable ?? true,
+            })
+          ),
+        }));
+        setDateTimeSlots(withIds);
+      } else console.log(res.error);
+    };
+    fetchDateTime();
+  }, []);
+
+  const [pricing, setPricing] = useState<Ospricesettings>({
+    pricePerNight: 0,
   });
 
   const [instantBooking, setInstantBooking] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [advanceBookingDays, setAdvanceBookingDays] = useState(30);
+  const [newLoading, setNewLoading] = useState<boolean>(false);
+
+  const { userSession, role } = useApp();
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -127,6 +149,10 @@ const BookingManagement = () => {
     );
 
     const newSlot: TimeSlot = {
+      id:
+        existingDateIndex !== -1
+          ? dateTimeSlots[existingDateIndex].timeSlots.length
+          : 0,
       start: startTime24,
       end: endTime24,
       isAvailable: true,
@@ -152,26 +178,65 @@ const BookingManagement = () => {
     setShowDateTimeModal(false);
   };
 
-  const removeTimeSlot = (dateIndex: number, slotIndex: number) => {
+  const removeTimeSlot = async (dateIndex: number, slotIndex: number) => {
+    const selectedDateSlot = dateTimeSlots[dateIndex];
+    const selectedSlot = selectedDateSlot.timeSlots[slotIndex];
+
+    // Remove from UI immediately
     const updatedSlots = [...dateTimeSlots];
     updatedSlots[dateIndex].timeSlots.splice(slotIndex, 1);
-
-    // Remove the entire date if no time slots remain
     if (updatedSlots[dateIndex].timeSlots.length === 0) {
       updatedSlots.splice(dateIndex, 1);
     }
-
     setDateTimeSlots(updatedSlots);
+
+    // Then remove from database
+    const res = await removeTimeSlotFromDb(
+      userSession,
+      role,
+      selectedDateSlot.date,
+      selectedSlot.start,
+      selectedSlot.end
+    );
+
+    if (!res.success) console.log("Remove error:", res.error);
   };
 
-  const removeDateSlot = (dateIndex: number) => {
+  const removeDateSlot = async (dateIndex: number) => {
     const updatedSlots = [...dateTimeSlots];
     updatedSlots.splice(dateIndex, 1);
     setDateTimeSlots(updatedSlots);
+
+    const res = await removedateslot(
+      userSession,
+      role,
+      dateTimeSlots[dateIndex]
+    );
+
+    if (res && res.success) {
+      Alert.alert("sucess", "deleted successfully");
+    }
   };
 
-  const updatePricing = (field: keyof PricingSettings, value: number) => {
-    setPricing((prev) => ({ ...prev, [field]: value }));
+  const updatePricing = (value: number) => {
+    setPricing({ pricePerNight: value });
+  };
+
+  const savePricing = async () => {
+    try {
+      setNewLoading(true);
+
+      const res = await setPricingDb(userSession, role, pricing.pricePerNight);
+      if (res && res.success) {
+        Alert.alert("successful", "price updated successfully");
+        updatePricing(res.data.price_per_night);
+      } else {
+        Alert.alert("error", "not saved");
+      }
+    } catch (error) {
+    } finally {
+      setNewLoading(false);
+    }
   };
 
   const formatDisplayDate = (dateString: string) => {
@@ -182,6 +247,19 @@ const BookingManagement = () => {
       day: "numeric",
       year: "numeric",
     });
+  };
+
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+      const res = await upsertAvailability(dateTimeSlots, userSession, role);
+      if (!res.success) console.error(res.error);
+      else Alert.alert("Success", "Availability updated successfully");
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderAvailabilityTab = () => (
@@ -274,123 +352,18 @@ const BookingManagement = () => {
       </View>
     </View>
   );
-
-  const renderPricingTab = () => (
-    <View style={styles.tabContent}>
-      <Text style={styles.sectionTitle}>Pricing Settings</Text>
-      <Text style={styles.sectionSubtitle}>
-        Set your rates and booking requirements
-      </Text>
-
-      <View style={styles.pricingCard}>
-        <Text style={styles.cardTitle}>Hourly Rate</Text>
-
-        <View style={styles.priceInputContainer}>
-          <Text style={styles.currencySymbol}>₦</Text>
-          <TextInput
-            style={styles.priceInput}
-            value={pricing.pricePerHour.toString()}
-            onChangeText={(text) =>
-              updatePricing("pricePerHour", Number(text) || 0)
-            }
-            keyboardType="numeric"
-            placeholder="150"
-          />
-          <Text style={styles.priceUnit}>/hour</Text>
-        </View>
-
-        <Text style={styles.priceDescription}>
-          This is what clients will pay per hour for your services
-        </Text>
-      </View>
-
-      <View style={styles.pricingCard}>
-        <Text style={styles.cardTitle}>Service Fee</Text>
-
-        <View style={styles.priceInputContainer}>
-          <Text style={styles.currencySymbol}>₦</Text>
-          <TextInput
-            style={styles.priceInput}
-            value={pricing.serviceFee.toString()}
-            onChangeText={(text) =>
-              updatePricing("serviceFee", Number(text) || 0)
-            }
-            keyboardType="numeric"
-            placeholder="25"
-          />
-        </View>
-
-        <Text style={styles.priceDescription}>
-          Additional fee added to each booking
-        </Text>
-      </View>
-
-      <View style={styles.pricingCard}>
-        <Text style={styles.cardTitle}>Booking Duration</Text>
-
-        <View style={styles.durationContainer}>
-          <View style={styles.durationItem}>
-            <Text style={styles.durationLabel}>Minimum</Text>
-            <View style={styles.durationInputContainer}>
-              <TextInput
-                style={styles.durationInput}
-                value={pricing.minimumBookingHours.toString()}
-                onChangeText={(text) =>
-                  updatePricing("minimumBookingHours", Number(text) || 1)
-                }
-                keyboardType="numeric"
-                placeholder="1"
-              />
-              <Text style={styles.durationUnit}>hrs</Text>
-            </View>
-          </View>
-
-          <View style={styles.durationItem}>
-            <Text style={styles.durationLabel}>Maximum</Text>
-            <View style={styles.durationInputContainer}>
-              <TextInput
-                style={styles.durationInput}
-                value={pricing.maximumBookingHours.toString()}
-                onChangeText={(text) =>
-                  updatePricing("maximumBookingHours", Number(text) || 8)
-                }
-                keyboardType="numeric"
-                placeholder="8"
-              />
-              <Text style={styles.durationUnit}>hrs</Text>
-            </View>
-          </View>
-        </View>
-
-        <Text style={styles.priceDescription}>
-          Set minimum and maximum booking duration
-        </Text>
-      </View>
-
-      <View style={styles.previewCard}>
-        <Text style={styles.cardTitle}>Price Preview</Text>
-        <View style={styles.previewRow}>
-          <Text style={styles.previewLabel}>2 hours booking:</Text>
-          <Text style={styles.previewValue}>
-            ₦{pricing.pricePerHour * 2 + pricing.serviceFee}
-          </Text>
-        </View>
-        <View style={styles.previewBreakdown}>
-          <Text style={styles.breakdownText}>
-            ₦{pricing.pricePerHour} × 2hrs + ₦{pricing.serviceFee} service fee
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
-
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Booking Management</Text>
-        <TouchableOpacity style={styles.saveButton}>
-          <Text style={styles.saveButtonText}>Save</Text>
+        <TouchableOpacity
+          style={styles.saveButton}
+          onPress={() => handleSave()}
+        >
+          <Text style={styles.saveButtonText}>
+            {loading ? "Saving..." : "Save"}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -447,7 +420,7 @@ const BookingManagement = () => {
       >
         {activeTab === "availability"
           ? renderAvailabilityTab()
-          : renderPricingTab()}
+          : renderPricingTab(pricing, updatePricing, savePricing, newLoading)}
       </ScrollView>
 
       {/* Date Time Selection Modal */}

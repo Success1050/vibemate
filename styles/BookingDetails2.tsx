@@ -1,0 +1,145 @@
+export const availabilityStyles = {
+  availabilitySection: {
+    padding: 20,
+    backgroundColor: "#F9F9F9",
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: "700" as const,
+    color: "#222",
+    marginBottom: 6,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 20,
+  },
+  dateCard: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  dateHeader: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "center" as const,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  dateHeaderLeft: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 8,
+  },
+  dateText: {
+    fontSize: 16,
+    fontWeight: "600" as const,
+    color: "#222",
+  },
+  instantBadge: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    backgroundColor: "#FFF5F5",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  instantText: {
+    fontSize: 12,
+    fontWeight: "600" as const,
+    color: "#FF385C",
+  },
+  timeSlotsContainer: {
+    gap: 10,
+  },
+  timeSlotCard: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    backgroundColor: "#FAFAFA",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 2,
+    borderColor: "#E8E8E8",
+  },
+  timeSlotCardSelected: {
+    backgroundColor: "#FFF5F5",
+    borderColor: "#FF385C",
+  },
+  timeSlotCardDisabled: {
+    opacity: 0.5,
+    backgroundColor: "#F5F5F5",
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#CCC",
+    marginRight: 12,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+  },
+  checkboxSelected: {
+    backgroundColor: "#FF385C",
+    borderColor: "#FF385C",
+  },
+  timeSlotInfo: {
+    flex: 1,
+  },
+  timeRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 6,
+    marginBottom: 6,
+  },
+  timeText: {
+    fontSize: 15,
+    fontWeight: "600" as const,
+    color: "#333",
+  },
+  timeTextSelected: {
+    color: "#FF385C",
+  },
+  durationText: {
+    fontSize: 13,
+    color: "#999",
+    marginLeft: 4,
+  },
+  priceRow: {
+    flexDirection: "row" as const,
+    alignItems: "baseline" as const,
+    gap: 6,
+  },
+  priceText: {
+    fontSize: 16,
+    fontWeight: "700" as const,
+    color: "#222",
+  },
+  priceTextSelected: {
+    color: "#FF385C",
+  },
+  priceSubtext: {
+    fontSize: 12,
+    color: "#999",
+  },
+  bookedBadge: {
+    backgroundColor: "#FFE5E5",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  bookedText: {
+    fontSize: 12,
+    fontWeight: "600" as const,
+    color: "#FF385C",
+  },
+};

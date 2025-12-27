@@ -1,30 +1,57 @@
-import { useApp } from "@/store";
+import { Session } from "@supabase/supabase-js";
 
 export const verifyAndCreditWallet = async (
   reference: string,
-  amount: number
+  userSession: Session | null,
+  amount: number,
+  goldAmount?: number
 ) => {
-  const { userSession } = useApp();
   try {
     const userId = userSession?.user?.id;
 
-    const res = await fetch("http://172.29.200.101:3000/verify-paystack", {
+    if (!userId) {
+      console.error("❌ No user ID found. User not logged in.");
+      return { success: false, error: "User not authenticated" };
+    }
+
+    if (!reference || !amount) {
+      console.error("❌ Missing reference or amount.");
+      return { success: false, error: "Missing reference or amount" };
+    }
+
+    console.log("🔍 Verifying payment with amount:", amount);
+
+    const res = await fetch("http://10.143.231.101:3000/verify-paystack", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         reference,
         userId,
         amount,
+        goldAmount,
       }),
     });
 
     const data = await res.json();
+
+    if (!res.ok) {
+      console.warn("⚠️ Server rejected request:", data?.error);
+      return { success: false, error: data?.error };
+    }
+
     if (data.success) {
-      console.log("✅ Wallet credited successfully!");
+      console.log(
+        `✅ ${
+          data.type === "gold" ? "Gold credited" : "Wallet funded"
+        } successfully!`
+      );
+      return { success: true, type: data.type };
     } else {
       console.warn("⚠️ Verification failed:", data.error);
+      return { success: false, error: data.error };
     }
-  } catch (err) {
-    console.error("💥 Error verifying payment:", err);
+  } catch (err: any) {
+    console.error("💥 Error verifying payment:", err.message);
+    return { success: false, error: "Network or server error" };
   }
 };

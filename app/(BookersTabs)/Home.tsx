@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   StyleSheet,
@@ -8,13 +8,12 @@ import {
   View,
 } from "react-native";
 
-import { featuredProviders } from "@/hooks/FeaturedProviders";
 import { renderGridItem } from "@/hooks/renderGridItem";
 import { renderProviderCard } from "@/hooks/renderProviderCard";
-import { providers } from "@/mockData";
-import Button from "@/src/components/Button";
+import { fetchOs } from "@/src/bookersActions/action";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { theme } from "@/src/constants/themes";
+import { ProviderCard } from "@/tsx-types";
 import { Link, useRouter } from "expo-router";
 import { Bell, Filter, Search, Sparkles } from "lucide-react-native";
 
@@ -25,6 +24,10 @@ const HomePage: React.FC = () => {
   const [priceRange, setPriceRange] = useState("all");
   const [likedProviders, setLikedProviders] = useState<Set<number>>(new Set());
   const [activeFilter, setActiveFilter] = useState("all");
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const [osProviders, setOsProviders] = useState<ProviderCard[]>([]);
 
   const router = useRouter();
 
@@ -35,38 +38,69 @@ const HomePage: React.FC = () => {
     setLikedProviders(newLiked);
   };
 
+  const fetchOsProviders = async () => {
+    try {
+      setLoading(true);
+      const res = await fetchOs();
+      if (res && res.success) {
+        const flattened = (res.data || []).map((item) => {
+          const os = item.osprofile as any;
+          const pricing = item.pricing_settings as any;
+
+          const images = os?.image_url || [];
+          const firstImage =
+            Array.isArray(images) && images.length > 0
+              ? { uri: images[0] }
+              : null;
+
+          return {
+            id: item.id,
+            name: os?.nickname ?? "Unnamed",
+            bio: os?.bio?.split(".")[0] ?? "",
+            image: firstImage,
+            is_available: os?.is_available ?? false,
+            featured: os?.featured ?? false,
+            price_per_night: pricing?.price_per_night ?? 0,
+          };
+        });
+
+        // console.log("Flattened:", osProviders);
+        setOsProviders([...flattened]);
+      }
+
+      console.log(res.error);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOsProviders();
+  }, []);
+
   const filteredProviders = useMemo(() => {
-    return providers.filter((provider) => {
+    return osProviders.filter((provider) => {
       const matchesSearch =
         provider.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        provider.description
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        provider.tags.some((tag) =>
-          tag.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-      const matchesGender =
-        selectedGender === "all" || provider.gender === selectedGender;
+        provider.bio.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesPrice =
         priceRange === "all" ||
-        (priceRange === "low" && provider.price < 80) ||
+        (priceRange === "low" && provider.price_per_night < 80) ||
         (priceRange === "medium" &&
-          provider.price >= 80 &&
-          provider.price < 100) ||
-        (priceRange === "high" && provider.price >= 100);
+          provider.price_per_night >= 80 &&
+          provider.price_per_night < 100) ||
+        (priceRange === "high" && provider.price_per_night >= 100);
 
       const matchesActiveFilter =
         activeFilter === "all" ||
-        (activeFilter === "available" &&
-          provider.availability === "available") ||
-        (activeFilter === "top-rated" && provider.rating >= 4.8) ||
-        (activeFilter === "nearby" && parseFloat(provider.distance) < 2);
+        (activeFilter === "available" && provider.is_available === true);
 
-      return (
-        matchesSearch && matchesGender && matchesPrice && matchesActiveFilter
-      );
+      return matchesSearch && matchesPrice && matchesActiveFilter;
     });
-  }, [searchQuery, selectedGender, priceRange, activeFilter]);
+  }, [searchQuery, selectedGender, priceRange, activeFilter, osProviders]);
 
   return (
     <ScreenWrapper bg="dark">
@@ -77,6 +111,11 @@ const HomePage: React.FC = () => {
           keyExtractor={(item, index) => `${item.id}-${index}`}
           numColumns={2}
           showsVerticalScrollIndicator={false}
+          refreshing={refreshing}
+          onRefresh={() => {
+            setRefreshing(true);
+            fetchOsProviders();
+          }}
           keyboardShouldPersistTaps="handled"
           // contentContainerStyle={{ paddingBo\ttom: 100 }}
 
@@ -106,7 +145,7 @@ const HomePage: React.FC = () => {
                   style={{ marginRight: 8 }}
                 />
                 <TextInput
-                  placeholder="Search services, providers, or skills..."
+                  placeholder="beautiful Os, and companions..."
                   style={styles.searchInput}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
@@ -152,11 +191,13 @@ const HomePage: React.FC = () => {
                     </TouchableOpacity>
                   </View>
 
-                  {featuredProviders.map((provider) => (
-                    <View key={provider.id} style={{ marginBottom: 12 }}>
-                      {renderProviderCard(provider, false)}
-                    </View>
-                  ))}
+                  {osProviders
+                    .filter((p) => p.featured)
+                    .map((provider) => (
+                      <View key={provider.id} style={{ marginBottom: 12 }}>
+                        {renderProviderCard(provider, false)}
+                      </View>
+                    ))}
                 </>
               )}
 
@@ -179,13 +220,6 @@ const HomePage: React.FC = () => {
                 </View>
               )}
             </View>
-          }
-          ListFooterComponent={
-            <Button
-              // buttonStyle={{ marginBottom: 120 }}
-              title="See all"
-              onpress={() => router.push("/providers")}
-            />
           }
         />
       </View>

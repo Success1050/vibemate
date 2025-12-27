@@ -1,8 +1,9 @@
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { theme } from "@/src/constants/themes";
+import { getGoldBal } from "@/src/helpers/goldAccount";
 import { verifyAndCreditWallet } from "@/src/helpers/verifyPayment";
 import { useApp } from "@/store";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ScrollView,
   StatusBar,
@@ -18,8 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const GoldPurchaseScreen = () => {
   const [selectedPackage, setSelectedPackage] = useState<number | null>(null);
-  const [amount, setAmount] = useState<number>(0);
-  const [userId, setUserId] = useState<string>("");
+  const [goldBal, setGoldBalance] = useState<number>(0);
   const { userSession } = useApp();
   const { popup } = usePaystack();
 
@@ -39,26 +39,52 @@ const GoldPurchaseScreen = () => {
     if (!pkg) return;
 
     const computedAmount = pkg.price; // Paystack expects kobo
-    const reference = `${userSession?.user?.id}-${Date.now()}`; // unique per tx
+    const reference = `${userSession?.user?.id}-${Date.now()}`;
+
+    console.log("computed amount", computedAmount);
 
     popup?.newTransaction({
       amount: computedAmount,
       email: userSession?.user?.email || "",
       reference,
-      onSuccess: (res: PaystackTransactionResponse) => {
+      onSuccess: async (res: PaystackTransactionResponse) => {
         const ref = res.reference;
-        if (ref) {
-          Toast.show("Payment Approved, verifying...", {
-            duration: Toast.durations.LONG,
-          });
-          verifyAndCreditWallet(reference, amount);
+
+        if (!ref) {
+          Toast.show("No reference found!", { duration: Toast.durations.LONG });
+          return;
+        }
+
+        Toast.show("Payment Approved, verifying...", {
+          duration: Toast.durations.SHORT,
+        });
+
+        const result = await verifyAndCreditWallet(
+          reference,
+          userSession,
+          computedAmount,
+          pkg.gold
+        );
+
+        if (result.success) {
+          if (result.type === "gold") {
+            Toast.show("🥇 Gold credited successfully!", {
+              duration: Toast.durations.LONG,
+            });
+          } else {
+            Toast.show("💰 Wallet funded successfully!", {
+              duration: Toast.durations.LONG,
+            });
+          }
         } else {
-          Toast.show("No reference found!", {
+          Toast.show(`❌ Verification failed: ${result.error}`, {
             duration: Toast.durations.LONG,
           });
         }
-        console.log("✅ success:", res);
+
+        console.log("Payment verification result:", result);
       },
+
       onCancel: () => {
         console.log("❌ cancelled");
       },
@@ -72,6 +98,18 @@ const GoldPurchaseScreen = () => {
 
     console.log(`Purchase package: ₦${pkg.price}`);
   };
+
+  useEffect(() => {
+    const fetchGoldBalance = async () => {
+      const res = await getGoldBal(userSession?.user.id ?? undefined);
+      if (res && res.success) {
+        console.log(res.data.gold_balance);
+        setGoldBalance(res.data.gold_balance);
+      }
+      console.log(res.error);
+    };
+    fetchGoldBalance();
+  }, [userSession?.user.id]);
 
   return (
     <ScreenWrapper bg="#1a1a2e">
@@ -87,7 +125,7 @@ const GoldPurchaseScreen = () => {
           <Text style={styles.balanceLabel}>Current Balance</Text>
           <View style={styles.balanceRow}>
             <Text style={styles.goldIcon}>💰</Text>
-            <Text style={styles.balanceAmount}>1,250</Text>
+            <Text style={styles.balanceAmount}>{goldBal ?? 0}</Text>
           </View>
         </View>
 

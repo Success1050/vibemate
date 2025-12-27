@@ -4,7 +4,7 @@ import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { styles } from "@/styles/OSBooking";
 import { EarningsData, OSBookingOrder } from "@/tsx-types";
 import { Ionicons } from "@expo/vector-icons";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
@@ -61,6 +61,8 @@ const ProviderDashboard = () => {
       day: "numeric",
     });
   };
+
+  const router = useRouter();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -154,9 +156,7 @@ const ProviderDashboard = () => {
     <ScreenWrapper bg="white">
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <Link href="/OSBookingmanage">
-          <Text>Bookings</Text>
-        </Link>
+        <Link href="/OSBookingmanage">{/* <Text>Bookings</Text> */}</Link>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Image
@@ -178,24 +178,26 @@ const ProviderDashboard = () => {
 
         {/* Stats Cards */}
         <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <View style={styles.statHeader}>
-              <Ionicons name="wallet-outline" size={24} color="#34C759" />
-              <Text style={styles.statValue}>
-                ₦{earnings.thisMonth.toLocaleString()}
+          <TouchableOpacity onPress={() => router.push("/osWithdrawal")}>
+            <View style={styles.statCard}>
+              <View style={styles.statHeader}>
+                <Ionicons name="wallet-outline" size={24} color="#34C759" />
+                <Text style={styles.statValue}>
+                  ₦{earnings.thisMonth.toLocaleString()}
+                </Text>
+              </View>
+              <Text style={styles.statLabel}>This Month</Text>
+              <Text style={styles.statChange}>
+                +
+                {(
+                  ((earnings.thisMonth - earnings.lastMonth) /
+                    earnings.lastMonth) *
+                  100
+                ).toFixed(1)}
+                % from last month
               </Text>
             </View>
-            <Text style={styles.statLabel}>This Month</Text>
-            <Text style={styles.statChange}>
-              +
-              {(
-                ((earnings.thisMonth - earnings.lastMonth) /
-                  earnings.lastMonth) *
-                100
-              ).toFixed(1)}
-              % from last month
-            </Text>
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.statCard}>
             <View style={styles.statHeader}>
@@ -235,7 +237,7 @@ const ProviderDashboard = () => {
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Bookings</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push("/allOsBookings")}>
               <Text style={styles.seeAllText}>See All</Text>
             </TouchableOpacity>
           </View>
@@ -253,15 +255,24 @@ const ProviderDashboard = () => {
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.quickActions}>
-            <TouchableOpacity style={styles.quickActionButton}>
+            <TouchableOpacity
+              onPress={() => router.push("/(OSTabs)/OSBookingmanage")}
+              style={styles.quickActionButton}
+            >
               <Ionicons name="calendar" size={24} color="#007AFF" />
               <Text style={styles.quickActionText}>Set Availability</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickActionButton}>
+            <TouchableOpacity
+              onPress={() => router.push("/(OSTabs)/OSBookingmanage")}
+              style={styles.quickActionButton}
+            >
               <Ionicons name="pricetag" size={24} color="#FF9500" />
               <Text style={styles.quickActionText}>Update Pricing</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickActionButton}>
+            <TouchableOpacity
+              onPress={() => router.push("/(OSTabs)/OSProfile")}
+              style={styles.quickActionButton}
+            >
               <Ionicons name="person" size={24} color="#34C759" />
               <Text style={styles.quickActionText}>Edit Profile</Text>
             </TouchableOpacity>

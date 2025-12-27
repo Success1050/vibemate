@@ -1,49 +1,45 @@
-import { ServiceProvider } from "@/tsx-types";
+import { ProviderCard } from "@/tsx-types";
 import { Image } from "expo-image";
 import { Link } from "expo-router";
-import { Crown, Star } from "lucide-react-native";
+import { Crown } from "lucide-react-native";
 import { useCallback } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status: boolean) => {
   switch (status) {
-    case "available":
+    case true:
       return "#10B981";
-    case "busy":
+    case false:
       return "#F59E0B";
-    case "offline":
-      return "#94A3B8";
     default:
       return "#94A3B8";
   }
 };
 
-const getStatusText = (status: string) => {
+const getStatusText = (status: boolean) => {
   switch (status) {
-    case "available":
+    case true:
       return "Available";
-    case "busy":
-      return "Busy";
-    case "offline":
-      return "Offline";
+    case false:
+      return "unavailable";
     default:
       return "Unknown";
   }
 };
 
 export const renderProviderCard = useCallback(
-  (provider: ServiceProvider, isHorizontal = false): React.ReactElement => (
+  (provider: ProviderCard, isHorizontal = false): React.ReactElement => (
     <View style={[styles.card, isHorizontal && styles.horizontalCard]}>
       <Image source={provider.image} style={styles.cardImage} />
       <View
         style={[
           styles.statusBadge,
-          { backgroundColor: getStatusColor(provider.availability) },
+          { backgroundColor: getStatusColor(provider.is_available) },
         ]}
       >
         <View style={styles.statusDot} />
         <Text style={styles.statusText}>
-          {getStatusText(provider.availability)}
+          {getStatusText(provider.is_available)}
         </Text>
       </View>
       {provider.featured && (
@@ -54,20 +50,13 @@ export const renderProviderCard = useCallback(
       )}
       <View style={styles.cardContent}>
         <Text style={styles.cardTitle}>{provider.name}</Text>
-        <Text style={styles.cardDescription}>{provider.description}</Text>
-        <View style={styles.tagsContainer}>
-          {provider.tags.slice(0, 3).map((tag, index) => (
-            <Text key={index} style={styles.tag}>
-              {tag}
-            </Text>
-          ))}
-        </View>
+        <Text style={styles.cardDescription}>{provider.bio}</Text>
         <View style={styles.cardFooter}>
-          <View style={styles.rating}>
+          {/* <View style={styles.rating}>
             <Star size={14} color="#FBBF24" />
             <Text style={styles.ratingText}>{provider.rating}</Text>
-          </View>
-          <Text style={styles.price}>${provider.price}/hr</Text>
+          </View> */}
+          <Text style={styles.price}>${provider.price_per_night}/night</Text>
         </View>
         <Link
           href={{ pathname: "/BookingDetails", params: { id: provider.id } }}

@@ -5,12 +5,14 @@ import React, { useEffect, useState } from "react";
 import { usePaystack } from "react-native-paystack-webview";
 
 import { verifyAndCreditWallet } from "@/src/helpers/verifyPayment";
+import { useApp } from "@/store";
 import { styles } from "@/styles/topupStyles";
 import { useRouter } from "expo-router";
 import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
@@ -32,30 +34,27 @@ const TopUpWalletScreen: React.FC<TopUpWalletScreenProps> = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const { popup } = usePaystack();
   const router = useRouter();
+  const { userSession } = useApp();
+  const [refreshing, setRefreshing] = useState(false);
 
+  const getwalletBalance = async () => {
+    const { data, error } = await supabase
+      .from("wallets")
+      .select("*")
+      .eq("user_id", userSession?.user.id)
+      .single();
+    if (error) return;
+    setBalance(data.balance);
+  };
   useEffect(() => {
-    const currUser = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) return;
-      setUserId(session.user.id);
-    };
-    currUser();
-  }, []);
-
-  useEffect(() => {
-    const getwalletBalance = async () => {
-      const { data, error } = await supabase
-        .from("wallets")
-        .select("*")
-        .eq("user_id", userId)
-        .single();
-      if (error) return;
-      setBalance(data.balance);
-    };
     getwalletBalance();
-  }, [userId]);
+  }, [userSession?.user.id]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await getwalletBalance();
+    setRefreshing(false);
+  };
 
   const handleTopUp = () => {
     if (!amount || amount <= 0) {
@@ -80,7 +79,7 @@ const TopUpWalletScreen: React.FC<TopUpWalletScreenProps> = () => {
           Toast.show("Payment Approved, verifying...", {
             duration: Toast.durations.LONG,
           });
-          verifyAndCreditWallet(reference, amount);
+          verifyAndCreditWallet(reference, userSession, amount);
         } else {
           Toast.show("No reference found!", {
             duration: Toast.durations.LONG,
@@ -110,6 +109,9 @@ const TopUpWalletScreen: React.FC<TopUpWalletScreenProps> = () => {
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         >
           {/* Header */}
           <View style={styles.header}>

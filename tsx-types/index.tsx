@@ -10,6 +10,33 @@ export interface Notification {
   avatar?: string;
 }
 
+export interface ProfileData {
+  name: string;
+  nickname: string;
+  description: string;
+  // profileImage: any;
+  age: number;
+  location: string;
+  specificAddress: string;
+  country: string;
+  phone: string;
+  email: string;
+  languages: string[];
+  isVerified: boolean;
+  emergencyContact: string;
+}
+
+export interface MediaGallery {
+  mainImages: any[];
+  videoSource: string;
+}
+
+export interface PrivacySettings {
+  showLocation: true;
+  showAge: true;
+  showPhone: false;
+}
+
 export type EarningsData = {
   thisMonth: number;
   lastMonth: number;
@@ -40,6 +67,7 @@ export interface Transaction {
 }
 
 export interface TimeSlot {
+  id: number;
   start: string;
   end: string;
   isAvailable?: boolean;
@@ -59,11 +87,8 @@ export interface CalendarPickerProps {
   selectedTime?: TimeSlot;
 }
 
-export interface PricingSettings {
-  pricePerHour: number;
-  serviceFee: number;
-  minimumBookingHours: number;
-  maximumBookingHours: number;
+export interface Ospricesettings {
+  pricePerNight: number;
 }
 
 export interface ServiceProvider {
@@ -103,3 +128,78 @@ export interface Message {
   timestamp: string;
   type: "text" | "image";
 }
+
+export interface availability_slots {
+  available_date: string;
+  timeSlot: TimeSlot[];
+}
+
+export interface OsProfileType{
+  bio: string;
+  featured: boolean;
+  full_name: string;
+  image_url: string[]; // ✅ backend sends string[]
+  videos_urls: string[]; // ✅ backend sends string[]
+  is_available: boolean;
+  nickname: string;
+}
+
+export interface AvailabilitySlot {
+  id?: number;
+  profile_id?: number;
+  available_date?: string;
+  time_slots?: {
+    start?: string;
+    end?: string;
+    is_available?: boolean;
+    is_booked?: boolean;
+  }[];
+  instant_booking?: boolean;
+}
+
+export interface PricingSettings {
+  price_per_night: number;
+}
+
+export interface OsProviders {
+  id: number;
+  user_id: string;
+  email: string;
+  role: string;
+  osprofile: OsProfileType; // ✅ match backend key
+  pricing_settings: PricingSettings;
+  availability_slots: AvailabilitySlot[];
+}
+
+export interface ProviderCard {
+  id: number;
+  name: string;
+  bio: string;
+  image: { uri: string } | null; //
+  is_available: boolean;
+  featured: boolean;
+  price_per_night: number;
+}
+
+type BookerProfile = {
+  full_name?: string;
+  nickname?: string;
+  bio?: string;
+  age?: number;
+  profile_image_url?: string;
+};
+
+export type BookingItem = {
+  id: string;
+  booking_date: string;
+  start_time: string;
+  end_time: string;
+  night_rate: number;
+  total_amount: number;
+  status: string;
+  created_at: string;
+  os_id: number;
+  booker_id?: {
+    bookerprofile?: BookerProfile[];
+  };
+};

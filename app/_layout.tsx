@@ -1,17 +1,22 @@
-// app/_layout.tsx
+import { supabase } from "@/lib/supabase";
+import useLocationEnforcer from "@/src/components/useLocationEnforcer";
 import { theme } from "@/src/constants/themes";
-import { AppProvider, useApp } from "@/store"; // path to the provider file above
+import { AppProvider, useApp } from "@/store";
 import { StreamVideo } from "@stream-io/video-react-native-sdk";
-import { Stack } from "expo-router";
-import React from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { useAudioPlayer } from "expo-audio";
+import { Stack, useRouter } from "expo-router";
+import React, { useEffect } from "react";
+import { ActivityIndicator, Alert, Text, View } from "react-native";
 import { PaystackProvider } from "react-native-paystack-webview";
 
-function RootLayoutContent() {
-  const { userSession, role, client, loading, error } = useApp();
+const ringtone = require("@/assets/audio/ringtone.mp3");
 
-  // Still initializing provider
-  if (loading) {
+function RootLayoutContent() {
+  const router = useRouter();
+  const { userSession, role, client, loading, error, refreshKey } = useApp();
+
+  // loading / auth guards same as before ...
+  if (loading || (userSession && (!role || !client))) {
     return (
       <View
         style={{
@@ -23,13 +28,12 @@ function RootLayoutContent() {
       >
         <ActivityIndicator size="large" />
         <Text style={{ color: "white", marginTop: 10 }}>
-          Checking session...
+          Preparing your dashboard...
         </Text>
       </View>
     );
   }
 
-  // If provider has an error, surface it
   if (error) {
     return (
       <View
@@ -45,18 +49,15 @@ function RootLayoutContent() {
     );
   }
 
-  // Not signed in -> auth stack (index, login, signup, etc)
   if (!userSession) {
     return (
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="login" />
-        {/* add more auth routes if you want */}
       </Stack>
     );
   }
 
-  // Signed in but no role yet -> show a loader (or a "complete profile" screen)
   if (userSession && !role) {
     return (
       <View
@@ -75,9 +76,116 @@ function RootLayoutContent() {
     );
   }
 
-  // Signed in + role -> show role-specific stacks; also wrap with StreamVideo & Paystack if client exists
+  const player = useAudioPlayer(ringtone);
+
+  const location = useLocationEnforcer();
+
+  useEffect(() => {
+    if (location) console.log("the locations", location);
+  }, [location]);
+
+  // role redirect
+  useEffect(() => {
+    if (role === "booker") {
+      router.replace("/(BookersTabs)/videocall");
+    } else if (role === "os") {
+      router.replace("/(OSTabs)/OSDashboard");
+    } else {
+      router.replace("/login");
+    }
+  }, [role]);
+
+  useEffect(() => {
+    if (!userSession?.user?.id) return;
+
+    const channel = supabase
+      .channel("incoming-video-calls")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "video_calls",
+          filter: `callee_id=eq.${userSession.user.id}`,
+        },
+        async (payload) => {
+          const call = payload.new;
+          if (call.status === "pending") {
+            // start ringing
+            player.seekTo(0);
+            player.play();
+
+            Alert.alert("Incoming Video Call", "you have an incoming call", [
+              {
+                text: "Reject",
+                style: "cancel",
+                onPress: async () => {
+                  player.pause();
+                  player.seekTo(0);
+
+                  await supabase
+                    .from("video_calls")
+                    .update({ status: "failed" })
+                    .eq("id", call.id);
+                },
+              },
+              {
+                text: "Accept",
+                onPress: async () => {
+                  player.pause();
+                  player.seekTo(0);
+
+                  await supabase
+                    .from("video_calls")
+                    .update({
+                      status: "active",
+                      started_at: new Date().toISOString(),
+                    })
+                    .eq("id", call.id);
+
+                  router.push({
+                    pathname: "/osVideoCallScreen" as any,
+                    params: { callId: call.agora_channel_name },
+                  });
+                },
+              },
+            ]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      player.pause();
+      player.seekTo(0);
+
+      supabase.removeChannel(channel);
+    };
+  }, [userSession?.user?.id]);
+
+  useEffect(() => {
+    if (!userSession?.user) return;
+
+    const setOnline = async (status: boolean) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ online_status: status })
+        .eq("user_id", userSession.user.id);
+
+      if (error) console.log("Error updating status:", error);
+    };
+
+    setOnline(true);
+
+    return () => {
+      setOnline(false);
+    };
+  }, [userSession]);
+
+  // render role-based layout
   return (
     <PaystackProvider
+      key={refreshKey}
       debug
       publicKey={
         process.env.EXPO_PAYSTACK_PUBLIC_KEY ||
@@ -99,10 +207,8 @@ function RootLayoutContent() {
           )}
         </StreamVideo>
       ) : (
-        // If client hasn't been created for some reason — still allow fallback
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
-          <Stack.Screen name="login" />
         </Stack>
       )}
     </PaystackProvider>

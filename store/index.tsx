@@ -1,4 +1,3 @@
-// src/store/AppContext.tsx
 import { supabase } from "@/lib/supabase";
 import { StreamVideoClient } from "@stream-io/video-react-native-sdk";
 import type { Session } from "@supabase/supabase-js";
@@ -18,6 +17,7 @@ type AppContextType = {
   client: StreamVideoClient | null;
   loading: boolean;
   error: string | null;
+  refreshKey: number;
 };
 
 const AppContext = createContext<AppContextType>({
@@ -26,6 +26,7 @@ const AppContext = createContext<AppContextType>({
   client: null,
   loading: true,
   error: null,
+  refreshKey: 0,
 });
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
@@ -34,6 +35,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [client, setClient] = useState<StreamVideoClient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const streamClientRef = useRef<StreamVideoClient | null>(null);
 
@@ -70,14 +72,21 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
         // fetch stream token
         const resp = await fetch(
-          "http://172.29.200.101:3000/get-stream-token",
+          "http://10.143.231.101:3000/get-stream-token",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ userId: session.user.id }),
           }
         );
-        if (!resp.ok) throw new Error("Failed to fetch Stream token");
+
+        if (!resp.ok) {
+          const text = await resp.text().catch(() => "No body");
+          throw new Error(
+            `Stream token fetch failed: ${resp.status} ${resp.statusText} → ${text}`
+          );
+        }
+
         const { token } = await resp.json();
 
         const apiKey = "ape3y3rstefa";
@@ -94,13 +103,13 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
             token,
           });
           setClient(streamClientRef.current);
+          setRefreshKey((prev) => prev + 1); // 👈 force rerender when client ready
         }
       }
     } catch (err) {
       console.error("AppProvider init error:", err);
       setError(err instanceof Error ? err.message : "Init failed");
     } finally {
-      // ✅ always runs, even if no session
       setLoading(false);
     }
   };
@@ -127,7 +136,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         if (!mounted) return;
 
         if (event === "SIGNED_OUT") {
-          await init(null); // reuse cleanup logic
+          await init(null);
         } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
           await init(session);
         }
@@ -153,7 +162,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   return (
-    <AppContext.Provider value={{ userSession, role, client, loading, error }}>
+    <AppContext.Provider
+      value={{ userSession, role, client, loading, error, refreshKey }}
+    >
       {children}
     </AppContext.Provider>
   );

@@ -25,7 +25,7 @@ const CustomCallControls = (props: CallControlProps) => {
   );
 };
 
-const VideoCallScreen = () => {
+const OsVideoCallScreen = () => {
   const router = useRouter();
   const { callId } = useLocalSearchParams<{ callId: string }>();
   const client = useStreamVideoClient();
@@ -48,9 +48,18 @@ const VideoCallScreen = () => {
 
         console.log("Joining call:", callId);
 
-        // Initialize and join call
         const _call = client.call("default", callId);
-        await _call.join({ create: true });
+
+        await _call.join({ create: false });
+
+        await supabase
+          .from("video_calls")
+          .update({
+            status: "active",
+            started_at: new Date().toISOString(),
+          })
+          .eq("call_id", callId)
+          .eq("status", "pending");
 
         setCall(_call);
         console.log("Joined call successfully!");
@@ -72,41 +81,10 @@ const VideoCallScreen = () => {
     };
   }, [client, callId]);
 
-  // 👇 Added Realtime listener to auto-end when gold finishes or call ends
-  useEffect(() => {
-    if (!callId) return;
-
-    const channel = supabase
-      .channel(`video_calls:${callId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "video_calls",
-          filter: `agora_channel_name=eq.${callId}`,
-        },
-        (payload) => {
-          const updated = payload.new;
-          if (
-            updated.status === "ended_insufficient_gold" ||
-            updated.status === "completed"
-          ) {
-            console.log("Call ended by system:", updated.status);
-            endCall();
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [callId]);
-
   const endCall = async () => {
     router.back();
     Alert.alert("Call Ended", "Thanks for calling!");
+
     if (callId) {
       await supabase
         .from("video_calls")
@@ -114,7 +92,7 @@ const VideoCallScreen = () => {
           ended_at: new Date().toISOString(),
           status: "completed",
         })
-        .eq("id", callId);
+        .eq("call_id", callId);
     }
   };
 
@@ -177,4 +155,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default VideoCallScreen;
+export default OsVideoCallScreen;

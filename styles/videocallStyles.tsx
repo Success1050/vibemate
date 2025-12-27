@@ -8,6 +8,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#E1BEE7",
   },
+  viewCont: { flex: 1, padding: 12 },
   header: {
     flexDirection: "row",
     alignItems: "center",

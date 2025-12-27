@@ -1,4 +1,4 @@
-import { ServiceProvider } from "@/tsx-types";
+import { ProviderCard } from "@/tsx-types";
 import { StyleSheet, View } from "react-native";
 import { renderProviderCard } from "./renderProviderCard";
 
@@ -6,7 +6,7 @@ export const renderGridItem = ({
   item,
   index,
 }: {
-  item: ServiceProvider;
+  item: ProviderCard;
   index: number;
 }) => {
   const isLeft = index % 2 === 0;

@@ -1,16 +1,21 @@
 // ProfileSettings.tsx
 import { supabase } from "@/lib/supabase";
+import Backbutton from "@/src/components/Backbutton";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { theme } from "@/src/constants/themes";
+import { getOsProfile, saveOsProfile } from "@/src/osActions/action";
+import { useApp } from "@/store";
+import { styles } from "@/styles/osProfile";
+import { MediaGallery, PrivacySettings, ProfileData } from "@/tsx-types";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   Image,
   ScrollView,
   StatusBar,
-  StyleSheet,
   Switch,
   Text,
   TextInput,
@@ -18,32 +23,13 @@ import {
   View,
 } from "react-native";
 
-interface ProfileData {
-  name: string;
-  nickname: string;
-  description: string;
-  profileImage: any;
-  age: string;
-  location: string;
-  specificAddress: string;
-  phone: string;
-  email: string;
-  languages: string[];
-  services: string[];
-  isVerified: boolean;
-  emergencyContact: string;
-}
-
-interface MediaGallery {
-  mainImages: any[];
-  videoSource: string;
-}
-
 const ProfileSettings = () => {
   const [activeTab, setActiveTab] = useState("basic");
-  // const user = useAuth();
+  const { userSession, role } = useApp();
   const [loading, setLoading] = useState(false);
+  const [Logoutloading, setLogoutLoading] = useState(false);
   const router = useRouter();
+
   const handleLogout = async () => {
     setLoading(true);
     const { error } = await supabase.auth.signOut();
@@ -55,26 +41,33 @@ const ProfileSettings = () => {
   };
 
   const [profileData, setProfileData] = useState<ProfileData>({
-    name: "Sarah Johnson",
-    nickname: "Sarah",
-    description:
-      "Professional companion with 5+ years experience. I provide genuine companionship for social events, dinner dates, and business functions.",
-    profileImage: require("@/assets/images/1.jpg"), // Replace with actual path
-    age: "28",
-    location: "Lagos, Nigeria",
-    specificAddress: "123 Victoria Island, Lagos State",
-    phone: "+234 801 234 5678",
-    email: "sarah.johnson@example.com",
-    languages: ["English", "Yoruba", "French"],
-    services: [
-      "Dinner Companion",
-      "Social Events",
-      "Business Functions",
-      "Travel Companion",
-    ],
-    isVerified: true,
-    emergencyContact: "+234 803 456 7890",
+    name: "",
+    nickname: "",
+    description: "",
+    age: 0,
+    location: "",
+    specificAddress: "",
+    country: "",
+    phone: "",
+    email: "",
+    languages: [],
+    isVerified: false,
+    emergencyContact: "",
   });
+
+  useEffect(() => {
+    const fetchOsProfiles = async () => {
+      try {
+        const res = await getOsProfile(userSession, role);
+        if (res?.data) {
+          setProfileData((prev) => ({ ...prev, ...res.data }));
+        }
+      } catch (err) {
+        console.log("Error fetching profile:", err);
+      }
+    };
+    fetchOsProfiles();
+  }, []);
 
   const [mediaGallery, setMediaGallery] = useState<MediaGallery>({
     mainImages: [
@@ -85,12 +78,10 @@ const ProfileSettings = () => {
     videoSource: "https://example.com/intro-video.mp4",
   });
 
-  const [privacy, setPrivacy] = useState({
+  const [privacy, setPrivacy] = useState<PrivacySettings>({
     showLocation: true,
     showAge: true,
     showPhone: false,
-    allowDirectMessages: true,
-    showOnlineStatus: true,
   });
 
   const updateProfile = (field: keyof ProfileData, value: any) => {
@@ -116,19 +107,31 @@ const ProfileSettings = () => {
     );
   };
 
-  const addService = () => {
-    Alert.prompt("Add Service", "Enter a new service you offer", (text) => {
-      if (text && !profileData.services.includes(text)) {
-        updateProfile("services", [...profileData.services, text]);
-      }
-    });
-  };
+  const handlesave = async () => {
+    console.log(userSession?.user.id);
 
-  const removeService = (service: string) => {
-    updateProfile(
-      "services",
-      profileData.services.filter((s) => s !== service)
-    );
+    try {
+      setLoading(true);
+      const res = await saveOsProfile(
+        profileData,
+        mediaGallery,
+        privacy,
+        userSession,
+        role
+      )
+        .then((res) => console.log(res))
+        .catch((err) => console.log("Error:", err));
+
+      // if (res?.success) {
+      //   Alert.alert("Success", "Profile updated successfully!");
+      // } else {
+      //   Alert.alert("Error", "Failed to update profile. Please try again.");
+      // }
+    } catch (error) {
+      Alert.alert("Error", "An unexpected error occurred.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderBasicInfoTab = () => (
@@ -136,10 +139,7 @@ const ProfileSettings = () => {
       {/* Profile Picture Section */}
       <View style={styles.profilePictureSection}>
         <View style={styles.profileImageContainer}>
-          <Image
-            source={profileData.profileImage}
-            style={styles.profileImage}
-          />
+          <Image src={"/assets/images/1.jpg"} style={styles.profileImage} />
           <TouchableOpacity style={styles.changePhotoButton}>
             <Ionicons name="camera" size={20} color="#FFFFFF" />
           </TouchableOpacity>
@@ -177,8 +177,11 @@ const ProfileSettings = () => {
           <Text style={styles.inputLabel}>Age</Text>
           <TextInput
             style={styles.textInput}
-            value={profileData.age}
-            onChangeText={(text) => updateProfile("age", text)}
+            value={profileData.age?.toString() || ""}
+            onChangeText={(text) => {
+              const numericValue = Number(text);
+              updateProfile("age", isNaN(numericValue) ? 0 : numericValue);
+            }}
             placeholder="Enter your age"
             keyboardType="numeric"
           />
@@ -269,6 +272,18 @@ const ProfileSettings = () => {
             Only shared after booking confirmation
           </Text>
         </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Country</Text>
+          <TextInput
+            style={styles.textInput}
+            value={profileData.country}
+            onChangeText={(text) => updateProfile("country", text)}
+            placeholder="Enter your country"
+          />
+          <Text style={styles.inputHelper}>
+            Only shared after booking confirmation
+          </Text>
+        </View>
 
         <View style={styles.locationPreview}>
           <Text style={styles.previewTitle}>Location Preview</Text>
@@ -303,27 +318,6 @@ const ProfileSettings = () => {
               <Text style={styles.tagText}>{language}</Text>
               <TouchableOpacity onPress={() => removeLanguage(language)}>
                 <Ionicons name="close-circle" size={16} color="#8E8E93" />
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
-      </View>
-
-      {/* Services */}
-      <View style={styles.infoCard}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>Services Offered</Text>
-          <TouchableOpacity onPress={addService} style={styles.addButton}>
-            <Ionicons name="add-circle" size={24} color="#007AFF" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.tagsContainer}>
-          {profileData.services.map((service, index) => (
-            <View key={index} style={styles.serviceTag}>
-              <Text style={styles.serviceTagText}>{service}</Text>
-              <TouchableOpacity onPress={() => removeService(service)}>
-                <Ionicons name="close-circle" size={16} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           ))}
@@ -422,40 +416,6 @@ const ProfileSettings = () => {
               thumbColor="#FFFFFF"
             />
           </View>
-
-          <View style={styles.privacySetting}>
-            <View style={styles.privacyInfo}>
-              <Text style={styles.privacyLabel}>Allow Direct Messages</Text>
-              <Text style={styles.privacyDescription}>
-                Let clients message you directly
-              </Text>
-            </View>
-            <Switch
-              value={privacy.allowDirectMessages}
-              onValueChange={(value) =>
-                updatePrivacy("allowDirectMessages", value)
-              }
-              trackColor={{ false: "#E5E5EA", true: "#34C759" }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-
-          <View style={styles.privacySetting}>
-            <View style={styles.privacyInfo}>
-              <Text style={styles.privacyLabel}>Show Online Status</Text>
-              <Text style={styles.privacyDescription}>
-                Display when you're online
-              </Text>
-            </View>
-            <Switch
-              value={privacy.showOnlineStatus}
-              onValueChange={(value) =>
-                updatePrivacy("showOnlineStatus", value)
-              }
-              trackColor={{ false: "#E5E5EA", true: "#34C759" }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
         </View>
       </View>
 
@@ -545,12 +505,15 @@ const ProfileSettings = () => {
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#1D1D1F" />
-          </TouchableOpacity>
+          <Backbutton router={router} size={24} />
           <Text style={styles.headerTitle}>Profile Settings</Text>
-          <TouchableOpacity style={styles.saveButton}>
-            <Text style={styles.saveButtonText}>Save</Text>
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={() => handlesave()}
+          >
+            <Text style={styles.saveButtonText}>
+              {loading ? "saving..." : "save"}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -662,383 +625,5 @@ const ProfileSettings = () => {
     </ScreenWrapper>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8F9FA",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    // paddingTop: 60,
-    paddingBottom: 20,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E5EA",
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#1D1D1F",
-  },
-  saveButton: {
-    backgroundColor: "#007AFF",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
-  },
-  saveButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  tabNavigation: {
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E5EA",
-  },
-  tabButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginRight: 12,
-    minWidth: 100,
-  },
-  activeTab: {
-    backgroundColor: "#007AFF15",
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#8E8E93",
-    marginLeft: 6,
-  },
-  activeTabText: {
-    color: "#007AFF",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  tabContent: {
-    padding: 20,
-  },
-  profilePictureSection: {
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  profileImageContainer: {
-    position: "relative",
-    marginBottom: 12,
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  changePhotoButton: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    backgroundColor: "#007AFF",
-    borderRadius: 20,
-    width: 32,
-    height: 32,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-  },
-  profileImageText: {
-    fontSize: 14,
-    color: "#8E8E93",
-  },
-  infoCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1D1D1F",
-    marginBottom: 16,
-  },
-  cardSubtitle: {
-    fontSize: 14,
-    color: "#8E8E93",
-    marginBottom: 16,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  addButton: {
-    padding: 4,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#1D1D1F",
-    marginBottom: 8,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: "#E5E5EA",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    backgroundColor: "#FFFFFF",
-  },
-  textArea: {
-    minHeight: 100,
-    textAlignVertical: "top",
-  },
-  characterCount: {
-    fontSize: 12,
-    color: "#8E8E93",
-    textAlign: "right",
-    marginTop: 4,
-  },
-  inputHelper: {
-    fontSize: 12,
-    color: "#8E8E93",
-    marginTop: 4,
-  },
-  locationPreview: {
-    marginTop: 20,
-  },
-  previewTitle: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#1D1D1F",
-    marginBottom: 12,
-  },
-  mapPlaceholder: {
-    height: 120,
-    backgroundColor: "#F2F2F7",
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  mapText: {
-    fontSize: 14,
-    color: "#8E8E93",
-    marginTop: 8,
-  },
-  updateLocationButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 16,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: "#007AFF",
-    borderRadius: 12,
-  },
-  updateLocationText: {
-    fontSize: 16,
-    color: "#007AFF",
-    fontWeight: "500",
-    marginLeft: 8,
-  },
-  tagsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  tag: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#E5E5EA",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 8,
-  },
-  tagText: {
-    fontSize: 14,
-    color: "#1D1D1F",
-  },
-  serviceTag: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#007AFF",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 8,
-  },
-  serviceTagText: {
-    fontSize: 14,
-    color: "#FFFFFF",
-  },
-  galleryContainer: {
-    marginTop: 12,
-  },
-  galleryItem: {
-    position: "relative",
-    marginRight: 12,
-  },
-  galleryImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-  },
-  removeImageButton: {
-    position: "absolute",
-    top: -8,
-    right: -8,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 10,
-  },
-  addImageButton: {
-    width: 80,
-    height: 80,
-    borderWidth: 2,
-    borderColor: "#E5E5EA",
-    borderStyle: "dashed",
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  videoUploadButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    borderWidth: 1,
-    borderColor: "#007AFF",
-    borderRadius: 12,
-    marginTop: 12,
-  },
-  videoUploadText: {
-    fontSize: 16,
-    color: "#007AFF",
-    fontWeight: "500",
-    marginLeft: 8,
-  },
-  privacySettings: {
-    marginTop: 8,
-  },
-  privacySetting: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F2F2F7",
-  },
-  privacyInfo: {
-    flex: 1,
-    marginRight: 16,
-  },
-  privacyLabel: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#1D1D1F",
-    marginBottom: 4,
-  },
-  privacyDescription: {
-    fontSize: 14,
-    color: "#8E8E93",
-    lineHeight: 18,
-  },
-  verificationItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F2F2F7",
-  },
-  verificationLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  verificationInfo: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  verificationLabel: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#1D1D1F",
-  },
-  verificationStatus: {
-    fontSize: 14,
-    color: "#8E8E93",
-    marginTop: 2,
-  },
-  verifyButton: {
-    backgroundColor: "#007AFF",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
-  },
-  verifyButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  verificationBenefits: {
-    backgroundColor: "#F2F2F7",
-    padding: 16,
-    borderRadius: 12,
-    marginTop: 16,
-  },
-  benefitsTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1D1D1F",
-    marginBottom: 8,
-  },
-  benefitItem: {
-    fontSize: 14,
-    color: "#8E8E93",
-    lineHeight: 20,
-    marginBottom: 2,
-  },
-  safetyOption: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F2F2F7",
-  },
-  safetyLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  safetyText: {
-    fontSize: 16,
-    color: "#1D1D1F",
-    marginLeft: 12,
-  },
-});
 
 export default ProfileSettings;

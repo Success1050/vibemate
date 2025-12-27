@@ -24,7 +24,7 @@ const Profile = () => {
     if (error) {
       return console.log(error);
     }
-    router.replace("/login");
+    router.replace("/");
     setLoading(false);
   };
 

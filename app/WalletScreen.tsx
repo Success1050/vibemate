@@ -1,10 +1,13 @@
+import { supabase } from "@/lib/supabase";
 import { transactions } from "@/mockData";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import TransactionItem from "@/src/components/TransactionItem";
+import { useApp } from "@/store";
 import { useRouter } from "expo-router";
 import { Wallet } from "lucide-react-native";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,13 +16,65 @@ import {
 } from "react-native";
 
 export default function WalletScreen() {
+  const [balance, setBalance] = useState(0);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { userSession, role } = useApp();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchWalletBalance = async () => {
+    try {
+      setLoading(true);
+
+      // ✅ get current user
+
+      const userId = userSession?.user?.id;
+
+      if (!userId) {
+        console.log("User not logged in:");
+        setLoading(false);
+        return;
+      }
+
+      // ✅ fetch wallet balance
+      const { data, error } = await supabase
+        .from("wallets")
+        .select("balance")
+        .eq("user_id", userId)
+        .single();
+
+      if (error) {
+        console.error("Error fetching wallet:", error);
+      } else {
+        setBalance(data.balance);
+      }
+    } catch (err) {
+      console.error("Unexpected error fetching wallet:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Fetch balance on mount
+  useEffect(() => {
+    fetchWalletBalance();
+  }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchWalletBalance();
+    setRefreshing(false);
+  };
+
   return (
     <ScreenWrapper bg="white">
       <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }} // add padding
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         {/* Header */}
         <View style={styles.header}>
@@ -28,7 +83,7 @@ export default function WalletScreen() {
             style={styles.withdrawButton}
             onPress={() => router.push("/topupScreen")}
           >
-            <Text style={styles.withdrawButtonText}>Withdraw Funds</Text>
+            <Text style={styles.withdrawButtonText}>Fund wallet</Text>
           </TouchableOpacity>
         </View>
 
@@ -39,7 +94,9 @@ export default function WalletScreen() {
               <View style={styles.cardContent}>
                 <View>
                   <Text style={styles.cardLabel}>Available Balance</Text>
-                  <Text style={styles.cardAmount}>$1,245.00</Text>
+                  <Text style={styles.cardAmount}>
+                    {loading ? "Loading..." : `$${balance?.toFixed(2)}`}
+                  </Text>
                 </View>
                 <Wallet size={32} color="#bfdbfe" />
               </View>

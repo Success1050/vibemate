@@ -72,7 +72,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
         // fetch stream token
         const resp = await fetch(
-          "http://10.143.231.101:3000/get-stream-token",
+          "https://vibemate-backend.onrender.com/get-stream-token",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },

@@ -21,7 +21,7 @@ export const verifyAndCreditWallet = async (
 
     console.log("🔍 Verifying payment with amount:", amount);
 
-    const res = await fetch("http://10.143.231.101:3000/verify-paystack", {
+    const res = await fetch("https://vibemate-backend.onrender.com/verify-paystack", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -41,8 +41,7 @@ export const verifyAndCreditWallet = async (
 
     if (data.success) {
       console.log(
-        `✅ ${
-          data.type === "gold" ? "Gold credited" : "Wallet funded"
+        `✅ ${data.type === "gold" ? "Gold credited" : "Wallet funded"
         } successfully!`
       );
       return { success: true, type: data.type };

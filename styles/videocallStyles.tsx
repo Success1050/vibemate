@@ -37,11 +37,13 @@ export const styles = StyleSheet.create({
     overflow: "hidden",
   },
   backgroundImage: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 15,
+  },
+  overlayContainer: {
     flex: 1,
     justifyContent: "space-between",
-  },
-  imageStyle: {
-    borderRadius: 15,
+    padding: 10,
   },
   statusIndicator: {
     width: 12,
@@ -77,8 +79,7 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    padding: 10,
-    top: "50%",
+    marginTop: "auto",
   },
   userInfo: {
     flex: 1,

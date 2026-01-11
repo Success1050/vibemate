@@ -1,5 +1,11 @@
-import React, { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { fetchNearbyHotels, getPhotoUrl, GooglePlaceResult } from "@/src/helpers/hotelRecommendation";
+import { useApp } from "@/store";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -8,7 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-// import { Star, MapPin, Coffee, Wifi, Car } from "lucide-react";
 
 interface Hotel {
   id: string;
@@ -23,65 +28,104 @@ interface Hotel {
 }
 
 const HotelSelectionScreen = () => {
-  const [selectedHotel, setSelectedHotel] = useState<string | null>(null);
+  const { bookingId } = useLocalSearchParams<{ bookingId: string }>();
+  const { userSession } = useApp();
+  const router = useRouter();
+
+  const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
 
-  const hotels: Hotel[] = [
-    {
-      id: "1",
-      name: "Grand Luxury Hotel & Spa",
-      image:
-        "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80",
-      rating: 4.8,
-      reviews: 342,
-      price: 189,
-      location: "Downtown, 2.3 km from venue",
-      amenities: ["wifi", "breakfast", "parking"],
-      distance: "2.3 km",
-    },
-    {
-      id: "2",
-      name: "Riverside Boutique Hotel",
-      image:
-        "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800&q=80",
-      rating: 4.6,
-      reviews: 218,
-      price: 145,
-      location: "Waterfront, 3.1 km from venue",
-      amenities: ["wifi", "breakfast"],
-      distance: "3.1 km",
-    },
-    {
-      id: "3",
-      name: "Modern City Suites",
-      image:
-        "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=80",
-      rating: 4.7,
-      reviews: 456,
-      price: 165,
-      location: "City Center, 1.8 km from venue",
-      amenities: ["wifi", "parking"],
-      distance: "1.8 km",
-    },
-    {
-      id: "4",
-      name: "Serene Garden Resort",
-      image:
-        "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800&q=80",
-      rating: 4.9,
-      reviews: 523,
-      price: 225,
-      location: "Garden District, 4.2 km from venue",
-      amenities: ["wifi", "breakfast", "parking"],
-      distance: "4.2 km",
-    },
-  ];
+  useEffect(() => {
+    const loadHotels = async () => {
+      try {
+        setLoading(true);
+        if (!userSession?.user?.id) return;
 
-  //   const amenityIcons = {
-  //     wifi: Wifi,
-  //     breakfast: Coffee,
-  //     parking: Car,
-  //   };
+        // 1. Fetch user lat/lng from profile
+        const { data: profile, error: profileErr } = await supabase
+          .from("profiles")
+          .select("latitude, longitude")
+          .eq("user_id", userSession.user.id)
+          .single();
+
+        if (profileErr || !profile) {
+          console.error("Error fetching profile location:", profileErr);
+          Alert.alert("Error", "Could not fetch your location to find nearby hotels.");
+          return;
+        }
+
+        if (!profile.latitude || !profile.longitude) {
+          Alert.alert("Location Missing", "Please enable location in settings to find hotels.");
+          setHotels([]);
+          return;
+        }
+
+        // 2. Fetch nearby hotels from Google Places
+        const places = await fetchNearbyHotels(profile.latitude, profile.longitude);
+
+        // 3. Map Google Places to our Hotel interface
+        const mappedHotels: Hotel[] = places.map((place: GooglePlaceResult) => ({
+          id: place.place_id,
+          name: place.name,
+          image: getPhotoUrl(place.photos?.[0]?.photo_reference),
+          rating: place.rating || 0,
+          reviews: place.user_ratings_total || 0,
+          price: 150, // Mock price as Google Places Nearby Search doesn't provide it
+          location: place.vicinity || "Nearby location",
+          amenities: ["wifi", "parking"], // Mock amenities
+          distance: "Nearby",
+        }));
+
+        setHotels(mappedHotels);
+      } catch (error) {
+        console.error("Error in loadHotels:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadHotels();
+  }, [userSession]);
+
+  const handleContinue = async () => {
+    if (!selectedHotel || !bookingId) return;
+
+    try {
+      setUpdating(true);
+      const { error } = await supabase
+        .from("bookings")
+        .update({ hotel: selectedHotel.name })
+        .eq("id", bookingId);
+
+      if (error) {
+        console.error("Error updating booking hotel:", error);
+        Alert.alert("Error", "Failed to save your hotel selection.");
+        return;
+      }
+
+      router.push("/PaymentConfirmed");
+    } catch (error) {
+      console.error("Unexpected error updating hotel:", error);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color="#4A90E2" />
+        <Text style={{ marginTop: 10, color: "#666" }}>Finding best hotels for you...</Text>
+      </View>
+    );
+  }
+
+  const filteredHotels = hotels.filter(h =>
+    h.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <ScrollView style={styles.container}>
@@ -106,89 +150,90 @@ const HotelSelectionScreen = () => {
 
       {/* Hotel Cards */}
       <View style={styles.hotelsContainer}>
-        {hotels.map((hotel) => {
-          const isSelected = selectedHotel === hotel.id;
-          return (
-            <TouchableOpacity
-              key={hotel.id}
-              style={[styles.hotelCard, isSelected && styles.hotelCardSelected]}
-              onPress={() => setSelectedHotel(hotel.id)}
-              activeOpacity={0.7}
-            >
-              {/* Hotel Image */}
-              <View style={styles.imageContainer}>
-                <Image
-                  source={{ uri: hotel.image }}
-                  style={styles.hotelImage}
-                />
-                <View style={styles.ratingBadge}>
-                  {/* <Star size={14} color="#FFD700" fill="#FFD700" /> */}
-                  <Text style={styles.ratingText}>{hotel.rating}</Text>
-                </View>
-                {isSelected && (
-                  <View style={styles.selectedBadge}>
-                    <Text style={styles.selectedBadgeText}>✓ Selected</Text>
+        {filteredHotels.length === 0 ? (
+          <Text style={{ textAlign: "center", color: "#999", marginTop: 20 }}>No hotels found nearby.</Text>
+        ) : (
+          filteredHotels.map((hotel) => {
+            const isSelected = selectedHotel?.id === hotel.id;
+            return (
+              <TouchableOpacity
+                key={hotel.id}
+                style={[styles.hotelCard, isSelected && styles.hotelCardSelected]}
+                onPress={() => setSelectedHotel(hotel)}
+                activeOpacity={0.7}
+              >
+                {/* Hotel Image */}
+                <View style={styles.imageContainer}>
+                  <Image
+                    source={{ uri: hotel.image }}
+                    style={styles.hotelImage}
+                  />
+                  <View style={styles.ratingBadge}>
+                    <Text style={styles.ratingText}>⭐ {hotel.rating}</Text>
                   </View>
-                )}
-              </View>
-
-              {/* Hotel Info */}
-              <View style={styles.hotelInfo}>
-                <Text style={styles.hotelName}>{hotel.name}</Text>
-
-                <View style={styles.locationRow}>
-                  {/* <MapPin size={14} color="#666" /> */}
-                  <Text style={styles.locationText}>{hotel.location}</Text>
+                  {isSelected && (
+                    <View style={styles.selectedBadge}>
+                      <Text style={styles.selectedBadgeText}>✓ Selected</Text>
+                    </View>
+                  )}
                 </View>
 
-                <View style={styles.amenitiesRow}>
-                  {hotel.amenities.map((amenity) => {
-                    // const Icon =
-                    //   amenityIcons[amenity as keyof typeof amenityIcons];
-                    return (
-                      <View key={amenity} style={styles.amenityIcon}>
-                        {/* <Icon size={16} color="#4A90E2" /> */}
-                      </View>
-                    );
-                  })}
-                  <Text style={styles.reviewText}>
-                    ({hotel.reviews} reviews)
-                  </Text>
-                </View>
+                {/* Hotel Info */}
+                <View style={styles.hotelInfo}>
+                  <Text style={styles.hotelName}>{hotel.name}</Text>
 
-                <View style={styles.priceRow}>
-                  <View>
-                    <Text style={styles.priceLabel}>Per night</Text>
-                    <Text style={styles.priceAmount}>${hotel.price}</Text>
+                  <View style={styles.locationRow}>
+                    <Text style={styles.locationText}>{hotel.location}</Text>
                   </View>
-                  <TouchableOpacity
-                    style={[
-                      styles.selectButton,
-                      isSelected && styles.selectButtonSelected,
-                    ]}
-                    onPress={() => setSelectedHotel(hotel.id)}
-                  >
-                    <Text
-                      style={[
-                        styles.selectButtonText,
-                        isSelected && styles.selectButtonTextSelected,
-                      ]}
-                    >
-                      {isSelected ? "Selected" : "Select"}
+
+                  <View style={styles.amenitiesRow}>
+                    <Text style={styles.reviewText}>
+                      ({hotel.reviews} reviews)
                     </Text>
-                  </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.priceRow}>
+                    <View>
+                      <Text style={styles.priceLabel}>Estimated Price</Text>
+                      <Text style={styles.priceAmount}>₦{hotel.price.toLocaleString()}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.selectButton,
+                        isSelected && styles.selectButtonSelected,
+                      ]}
+                      onPress={() => setSelectedHotel(hotel)}
+                    >
+                      <Text
+                        style={[
+                          styles.selectButtonText,
+                          isSelected && styles.selectButtonTextSelected,
+                        ]}
+                      >
+                        {isSelected ? "Selected" : "Select"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+              </TouchableOpacity>
+            )
+          })
+        )}
       </View>
 
       {/* Continue Button */}
       {selectedHotel && (
         <View style={styles.continueContainer}>
-          <TouchableOpacity style={styles.continueButton}>
-            <Text style={styles.continueButtonText}>Continue to Payment</Text>
+          <TouchableOpacity
+            style={styles.continueButton}
+            onPress={handleContinue}
+            disabled={updating}
+          >
+            {updating ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={styles.continueButtonText}>Confirm and Finish</Text>
+            )}
           </TouchableOpacity>
         </View>
       )}

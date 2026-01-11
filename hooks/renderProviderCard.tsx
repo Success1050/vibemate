@@ -30,7 +30,12 @@ const getStatusText = (status: boolean) => {
 export const renderProviderCard = useCallback(
   (provider: ProviderCard, isHorizontal = false): React.ReactElement => (
     <View style={[styles.card, isHorizontal && styles.horizontalCard]}>
-      <Image source={provider.image} style={styles.cardImage} />
+      <Image
+        source={provider.image}
+        style={styles.cardImage}
+        contentFit="cover"
+        transition={300}
+      />
       <View
         style={[
           styles.statusBadge,
@@ -81,7 +86,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   horizontalCard: { width: 200, marginRight: 12 },
-  cardImage: { width: "100%", height: 120 },
+  cardImage: { width: "100%", height: 180 },
   cardContent: { padding: 12 },
   cardTitle: { fontSize: 14, fontWeight: "bold", marginBottom: 4 },
   cardDescription: { fontSize: 12, color: "#64748B", marginBottom: 6 },

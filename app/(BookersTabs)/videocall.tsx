@@ -6,13 +6,13 @@ import { getGoldBal } from "@/src/helpers/goldAccount";
 import { useApp } from "@/store";
 import { styles } from "@/styles/videocallStyles";
 import { ProviderCard } from "@/tsx-types";
+import { Image } from "expo-image";
 import { Link, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Button,
   Dimensions,
   FlatList,
-  ImageBackground,
   StatusBar,
   Text,
   TouchableOpacity,
@@ -126,15 +126,17 @@ const VideoCallLayout = () => {
       >
         <TouchableOpacity onPress={() => console.log(item.id)}>
           <View style={styles.userCard}>
-            <ImageBackground
+            <Image
               source={
                 item?.image?.uri
                   ? { uri: item.image.uri }
                   : require("@/assets/images/2.jpg")
               }
               style={styles.backgroundImage}
-              imageStyle={styles.imageStyle}
-            >
+              contentFit="cover"
+              transition={300}
+            />
+            <View style={styles.overlayContainer}>
               <View
                 style={[
                   styles.statusIndicator,
@@ -163,7 +165,7 @@ const VideoCallLayout = () => {
                   </TouchableOpacity>
                 </View>
               </View>
-            </ImageBackground>
+            </View>
           </View>
         </TouchableOpacity>
       </Link>

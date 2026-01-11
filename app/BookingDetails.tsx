@@ -262,9 +262,8 @@ const BookingDetails = () => {
                 {
                   p_user_id: bookerId,
                   p_amount: totalAmount,
-                  p_description: `Booking ${
-                    osDetails.osprofile.nickname
-                  } for ${formatDisplayDate(bookingDate)}`,
+                  p_description: `Booking ${osDetails.osprofile.nickname
+                    } for ${formatDisplayDate(bookingDate)}`,
                 }
               );
 
@@ -346,15 +345,18 @@ const BookingDetails = () => {
               // ✅ Success
               Alert.alert(
                 "Booking Successful 🎉",
-                `You booked ${
-                  osDetails.osprofile.nickname
+                `You booked ${osDetails.osprofile.nickname
                 } for ${formatDisplayDate(
                   bookingDate
                 )} (${start} - ${end}). ₦${totalAmount.toLocaleString()} was deducted.`,
                 [
                   {
                     text: "OK",
-                    onPress: () => router.push("/hotelSelectionScreen"),
+                    onPress: () =>
+                      router.push({
+                        pathname: "/hotelSelectionScreen",
+                        params: { bookingId: bookingData[0].id },
+                      }),
                   },
                 ]
               );
@@ -550,7 +552,7 @@ const BookingDetails = () => {
                         availabilityStyles.timeSlotCard,
                         isSelected && availabilityStyles.timeSlotCardSelected,
                         timeSlot.is_booked &&
-                          availabilityStyles.timeSlotCardDisabled,
+                        availabilityStyles.timeSlotCardDisabled,
                       ]}
                       onPress={() =>
                         !timeSlot.is_booked &&
@@ -602,7 +604,7 @@ const BookingDetails = () => {
                             style={[
                               availabilityStyles.priceText,
                               isSelected &&
-                                availabilityStyles.priceTextSelected,
+                              availabilityStyles.priceTextSelected,
                             ]}
                           >
                             ₦{price.toLocaleString()}

@@ -1,8 +1,11 @@
+import { supabase } from "@/lib/supabase";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { hp } from "@/src/helpers/command";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import { useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   ScrollView,
@@ -14,10 +17,10 @@ import {
 
 interface BookingDetails {
   bookingId: string;
-  serviceName: string;
   providerName: string;
   date: string;
   time: string;
+  hotelName: string;
   location: string;
   amount: number;
   duration: string;
@@ -30,37 +33,78 @@ interface TransactionReceipt {
   status: string;
 }
 
-interface BookingConfirmationProps {
-  booking?: BookingDetails;
-  receipt?: TransactionReceipt;
-  walletBalance?: number;
-}
-
-const BookingConfirmationScreen: React.FC<BookingConfirmationProps> = ({
-  booking = {
-    bookingId: "BK001234567",
-    serviceName: "Premium Service",
-    providerName: "Sarah Johnson",
-    date: "2025-09-08",
-    time: "7:00 PM",
-    location: "123 Main Street, Downtown",
-    amount: 150.0,
-    duration: "2 hours",
-  },
-  receipt = {
-    transactionId: "TXN789456123",
-    paymentMethod: "Credit Card ****1234",
-    timestamp: new Date().toISOString(),
-    status: "Confirmed",
-  },
-  walletBalance = 245.5,
-}) => {
+const BookingConfirmationScreen = () => {
+  const { bookingId } = useLocalSearchParams<{ bookingId: string }>();
+  const [loading, setLoading] = useState(true);
+  const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
+  const [receiptDetails, setReceiptDetails] = useState<TransactionReceipt | null>(null);
+  const [walletBalance, setWalletBalance] = useState(0);
   const [isArrived, setIsArrived] = useState(false);
   const [checkInAnimation] = useState(new Animated.Value(1));
 
-  const handleChatPress = () => {
-    Alert.alert("Chat", `Opening chat with ${booking.providerName}...`);
-  };
+  useEffect(() => {
+    const fetchBookingData = async () => {
+      try {
+        setLoading(true);
+        if (!bookingId) {
+          console.error("No bookingId provided to PaymentConfirmed");
+          setLoading(false);
+          return;
+        }
+
+        const { data: booking, error } = await supabase
+          .from("bookings")
+          .select(`
+            *,
+            os:os_id (
+              osprofile (
+                full_name,
+                nickname
+              )
+            )
+          `)
+          .eq("id", bookingId)
+          .single();
+
+        if (error || !booking) {
+          console.error("Error fetching booking details:", error);
+          Alert.alert("Error", "Could not fetch booking confirmation details.");
+          setLoading(false);
+          return;
+        }
+
+        const providerName = booking.os?.osprofile?.nickname || booking.os?.osprofile?.full_name || "Service Provider";
+
+        setBookingDetails({
+          bookingId: booking.id.substring(0, 8).toUpperCase(),
+          providerName,
+          hotelName: booking.hotel,
+          date: booking.booking_date,
+          time: `${booking.start_time} - ${booking.end_time}`,
+          location: booking.hotel_location || booking.hotel || "Location not specified",
+          amount: booking.total_amount,
+          duration: "Scheduled duration",
+        });
+
+        setReceiptDetails({
+          transactionId: `TXN${booking.id.substring(0, 6).toUpperCase()}`,
+          paymentMethod: "Wallet Payment",
+          timestamp: booking.created_at,
+          status: "Confirmed",
+        });
+
+        // Mock wallet balance for now, normally you'd fetch this from a profiles/wallet table
+        setWalletBalance(245.5);
+
+      } catch (err) {
+        console.error("Unexpected error in fetchBookingData:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookingData();
+  }, [bookingId]);
 
   const handleCheckIn = () => {
     Animated.sequence([
@@ -111,6 +155,23 @@ const BookingConfirmationScreen: React.FC<BookingConfirmationProps> = ({
     });
   };
 
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color="#4CAF50" />
+        <Text style={{ marginTop: 10, color: "#666" }}>Loading confirmation...</Text>
+      </View>
+    );
+  }
+
+  if (!bookingDetails || !receiptDetails) {
+    return (
+      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
+        <Text style={{ color: "#FF6B6B" }}>Booking details not found.</Text>
+      </View>
+    );
+  }
+
   return (
     <ScreenWrapper bg="white">
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -128,31 +189,27 @@ const BookingConfirmationScreen: React.FC<BookingConfirmationProps> = ({
           <Text style={styles.cardTitle}>Booking Details</Text>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Booking ID:</Text>
-            <Text style={styles.detailValue}>{booking.bookingId}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Service:</Text>
-            <Text style={styles.detailValue}>{booking.serviceName}</Text>
+            <Text style={styles.detailValue}>{bookingDetails.bookingId}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Provider:</Text>
-            <Text style={styles.detailValue}>{booking.providerName}</Text>
+            <Text style={styles.detailValue}>{bookingDetails.providerName}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Date:</Text>
-            <Text style={styles.detailValue}>{formatDate(booking.date)}</Text>
+            <Text style={styles.detailValue}>{formatDate(bookingDetails.date)}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Time:</Text>
-            <Text style={styles.detailValue}>{booking.time}</Text>
+            <Text style={styles.detailValue}>{bookingDetails.time}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Duration:</Text>
-            <Text style={styles.detailValue}>{booking.duration}</Text>
+            <Text style={styles.detailLabel}>Hotel Name:</Text>
+            <Text style={styles.detailValue}>{bookingDetails.hotelName}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Location:</Text>
-            <Text style={styles.detailValue}>{booking.location}</Text>
+            <Text style={styles.detailValue}>{bookingDetails.location}</Text>
           </View>
         </View>
 
@@ -161,38 +218,27 @@ const BookingConfirmationScreen: React.FC<BookingConfirmationProps> = ({
           <Text style={styles.cardTitle}>Transaction Receipt</Text>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Transaction ID:</Text>
-            <Text style={styles.detailValue}>{receipt.transactionId}</Text>
+            <Text style={styles.detailValue}>{receiptDetails.transactionId}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Amount:</Text>
-            <Text style={styles.amountValue}>${booking.amount.toFixed(2)}</Text>
+            <Text style={styles.amountValue}>₦{bookingDetails.amount.toLocaleString()}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Payment Method:</Text>
-            <Text style={styles.detailValue}>{receipt.paymentMethod}</Text>
+            <Text style={styles.detailValue}>{receiptDetails.paymentMethod}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Time:</Text>
             <Text style={styles.detailValue}>
-              {formatTime(receipt.timestamp)}
+              {formatTime(receiptDetails.timestamp)}
             </Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Status:</Text>
             <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>{receipt.status}</Text>
+              <Text style={styles.statusText}>{receiptDetails.status}</Text>
             </View>
-          </View>
-        </View>
-
-        {/* Wallet Balance Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Wallet Balance</Text>
-          <View style={styles.walletBalance}>
-            <Ionicons name="wallet" size={24} color="#6C63FF" />
-            <Text style={styles.balanceAmount}>
-              ${walletBalance.toFixed(2)}
-            </Text>
           </View>
         </View>
 
@@ -307,7 +353,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#2C3E50",
     fontWeight: "500",
-    flex: 1,
+    flex: 2,
     textAlign: "right",
   },
   amountValue: {
@@ -328,36 +374,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
-  walletBalance: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,
-  },
-  balanceAmount: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#6C63FF",
-    marginLeft: 10,
-  },
   actionButtons: {
     paddingHorizontal: 20,
     paddingBottom: 20,
-  },
-  chatButton: {
-    backgroundColor: "#6C63FF",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 15,
-    borderRadius: 12,
-    marginBottom: 15,
-  },
-  chatButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 10,
   },
   checkInButton: {
     backgroundColor: "#FF6B6B",

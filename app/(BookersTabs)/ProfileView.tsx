@@ -1,11 +1,12 @@
-import { useAuth } from "@/context";
 import { supabase } from "@/lib/supabase";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { theme } from "@/src/constants/themes";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -15,18 +16,143 @@ import {
 } from "react-native";
 
 const Profile = () => {
-  const user = useAuth();
+  /* eslint-disable react-hooks/exhaustive-deps */
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [profile, setProfile] = useState<{
+    username?: string;
+    profile_img?: string;
+    full_name?: string;
+    email?: string;
+  } | null>(null);
+
   const router = useRouter();
+
+  // 1. Get User Session Directly
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setUser(user);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user?.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("username, full_name, email, profile_img")
+          .eq("user_id", user.id)
+          .single();
+
+        if (data) {
+          setProfile(data);
+          console.log('profile data', data);
+        }
+        if (error) {
+          console.log("Error fetching profile:", error);
+        }
+      } catch (e) {
+        console.log("Exception fetching profile:", e);
+      }
+    };
+
+    if (user) {
+      fetchProfile();
+    }
+  }, [user]);
+
   const handleLogout = async () => {
     setLoading(true);
     const { error } = await supabase.auth.signOut();
     if (error) {
       return console.log(error);
     }
-    router.replace("/");
+    router.replace("/login");
     setLoading(false);
   };
+
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
+
+      if (!result.canceled) {
+        uploadImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.log("Error picking image:", error);
+    }
+  };
+
+  const uploadImage = async (uri: string) => {
+    if (!user?.id) return;
+    setUploading(true);
+    try {
+      const arrayBuffer = await fetch(uri).then((res) => res.arrayBuffer());
+      const fileExt = uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('profileImage')
+        .upload(filePath, arrayBuffer, {
+          contentType: `image/${fileExt}`,
+          upsert: true,
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data } = supabase.storage
+        .from('profileImage')
+        .getPublicUrl(filePath);
+
+      if (data) {
+        const publicUrl = data.publicUrl;
+
+        // Update profile
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update({ profile_img: publicUrl })
+          .eq("user_id", user.id);
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        setProfile((prev) => prev ? ({ ...prev, profile_img: publicUrl }) : null);
+        Alert.alert("Success", "Profile image updated successfully!");
+      }
+
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to upload image");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+
+  const displayName = profile?.username || profile?.full_name || "Booker";
+  const displayEmail = profile?.email || "Booker";
+  // Clean up image string if needed
+  const rawImg = profile?.profile_img;
+  let displayImg = "https://i.pravatar.cc/150?img=12";
+  if (rawImg) {
+    const cleaned = rawImg.trim().replace(/^["']|["']$/g, '').split(',')[0].trim().replace(/['"]+/g, '');
+    if (cleaned.startsWith('http')) {
+      displayImg = cleaned;
+    }
+  }
 
   return (
     <ScreenWrapper bg="white">
@@ -36,18 +162,23 @@ const Profile = () => {
           <View style={styles.avatarContainer}>
             <Image
               source={{
-                uri: "https://i.pravatar.cc/150?img=12", // placeholder avatar
+                uri: displayImg,
               }}
               style={styles.avatar}
             />
+            <TouchableOpacity style={styles.editIcon} onPress={pickImage} disabled={uploading}>
+              <MaterialCommunityIcons name="camera" size={20} color="#fff" />
+            </TouchableOpacity>
             <View style={styles.avatarBorder} />
           </View>
-          <Text style={styles.name}>John Doe</Text>
-          <Text style={styles.email}>{user.user?.email}</Text>
+          <Text style={styles.name}>{displayName}</Text>
+          <Text style={styles.email}>{displayEmail}</Text>
+          {uploading && <Text style={{ color: theme.colors.primary, marginTop: 5 }}>Uploading...</Text>}
         </View>
 
         {/* Menu Options */}
         <View style={styles.menu}>
+
           <MenuItem
             icon="wallet"
             title="Wallet"
@@ -76,7 +207,7 @@ const Profile = () => {
 };
 
 interface MenuItemsProps {
-  icon: "logout" | "cog" | "bell" | "wallet";
+  icon: "logout" | "cog" | "bell" | "wallet" | "account-edit";
   title: string;
   isLogout?: boolean;
   onPress: () => void;
@@ -153,6 +284,19 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 5.84,
     elevation: 8,
+  },
+  editIcon: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 5,
+    zIndex: 10,
   },
   avatarBorder: {
     position: "absolute",

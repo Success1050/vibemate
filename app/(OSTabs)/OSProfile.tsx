@@ -8,6 +8,7 @@ import { useApp } from "@/store";
 import { styles } from "@/styles/osProfile";
 import { MediaGallery, PrivacySettings, ProfileData } from "@/tsx-types";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 
 import React, { useEffect, useState } from "react";
@@ -62,6 +63,9 @@ const ProfileSettings = () => {
         if (res?.data) {
           setProfileData((prev) => ({ ...prev, ...res.data }));
         }
+        if (res?.media) {
+          setMediaGallery((prev) => ({ ...prev, ...res.media }));
+        }
       } catch (err) {
         console.log("Error fetching profile:", err);
       }
@@ -69,13 +73,11 @@ const ProfileSettings = () => {
     fetchOsProfiles();
   }, []);
 
+  const [uploading, setUploading] = useState(false);
+
   const [mediaGallery, setMediaGallery] = useState<MediaGallery>({
-    mainImages: [
-      require("@/assets/images/1.jpg"),
-      require("@/assets/images/2.jpg"),
-      require("@/assets/images/3.jpg"),
-    ],
-    videoSource: "https://example.com/intro-video.mp4",
+    mainImages: [],
+    videoSource: "",
   });
 
   const [privacy, setPrivacy] = useState<PrivacySettings>({
@@ -106,6 +108,94 @@ const ProfileSettings = () => {
       profileData.languages.filter((l) => l !== language)
     );
   };
+
+  const uploadToSupabase = async (uri: string, folder: string = "misc") => {
+    if (!userSession?.user?.id) return null;
+    try {
+      const arrayBuffer = await fetch(uri).then((res) => res.arrayBuffer());
+      const fileExt = uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${userSession.user.id}/${Date.now()}_${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('profileImage')
+        .upload(filePath, arrayBuffer, {
+          contentType: fileExt === 'mp4' || fileExt === 'mov' ? `video/${fileExt}` : `image/${fileExt}`,
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('profileImage').getPublicUrl(filePath);
+      return data.publicUrl;
+    } catch (error) {
+      console.log("Upload error:", error);
+      Alert.alert("Error", "Failed to upload file");
+      return null;
+    }
+  };
+
+  const pickAvatar = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled) {
+      setUploading(true);
+      const url = await uploadToSupabase(result.assets[0].uri);
+      if (url) {
+        updateProfile("profile_img", url);
+      }
+      setUploading(false);
+    }
+  };
+
+  const pickGalleryImages = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.5,
+      selectionLimit: 5,
+    });
+
+    if (!result.canceled) {
+      setUploading(true);
+      const urls: any[] = [];
+      for (const asset of result.assets) {
+        const url = await uploadToSupabase(asset.uri);
+        if (url) urls.push(url);
+      }
+      setMediaGallery(prev => ({ ...prev, mainImages: [...prev.mainImages, ...urls] }));
+      setUploading(false);
+    }
+  };
+
+  const pickVideo = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      allowsEditing: true,
+      quality: 0.5,
+    });
+
+    if (!result.canceled) {
+      setUploading(true);
+      const url = await uploadToSupabase(result.assets[0].uri);
+      if (url) {
+        setMediaGallery(prev => ({ ...prev, videoSource: url }));
+      }
+      setUploading(false);
+    }
+  };
+
+  const removeGalleryImage = (index: number) => {
+    const newImages = [...mediaGallery.mainImages];
+    newImages.splice(index, 1);
+    setMediaGallery(prev => ({ ...prev, mainImages: newImages }));
+  };
+
 
   const handlesave = async () => {
     console.log(userSession?.user.id);
@@ -139,8 +229,11 @@ const ProfileSettings = () => {
       {/* Profile Picture Section */}
       <View style={styles.profilePictureSection}>
         <View style={styles.profileImageContainer}>
-          <Image src={"/assets/images/1.jpg"} style={styles.profileImage} />
-          <TouchableOpacity style={styles.changePhotoButton}>
+          <Image
+            source={{ uri: profileData.profile_img || "https://i.pravatar.cc/300" }}
+            style={styles.profileImage}
+          />
+          <TouchableOpacity style={styles.changePhotoButton} onPress={pickAvatar} disabled={uploading}>
             <Ionicons name="camera" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
@@ -336,13 +429,13 @@ const ProfileSettings = () => {
         >
           {mediaGallery.mainImages.map((image, index) => (
             <View key={index} style={styles.galleryItem}>
-              <Image source={image} style={styles.galleryImage} />
-              <TouchableOpacity style={styles.removeImageButton}>
+              <Image source={{ uri: image }} style={styles.galleryImage} />
+              <TouchableOpacity style={styles.removeImageButton} onPress={() => removeGalleryImage(index)}>
                 <Ionicons name="close-circle" size={20} color="#FF3B30" />
               </TouchableOpacity>
             </View>
           ))}
-          <TouchableOpacity style={styles.addImageButton}>
+          <TouchableOpacity style={styles.addImageButton} onPress={pickGalleryImages} disabled={uploading}>
             <Ionicons name="add" size={24} color="#8E8E93" />
           </TouchableOpacity>
         </ScrollView>
@@ -355,9 +448,9 @@ const ProfileSettings = () => {
           Add a short video to introduce yourself
         </Text>
 
-        <TouchableOpacity style={styles.videoUploadButton}>
+        <TouchableOpacity style={styles.videoUploadButton} onPress={pickVideo} disabled={uploading}>
           <Ionicons name="videocam" size={24} color="#007AFF" />
-          <Text style={styles.videoUploadText}>Upload Video</Text>
+          <Text style={styles.videoUploadText}>{mediaGallery.videoSource ? "Video Selected" : "Upload Video"}</Text>
         </TouchableOpacity>
       </View>
     </View>

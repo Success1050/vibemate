@@ -38,7 +38,7 @@ const Settings = () => {
               icon="account-edit"
               title="Edit Profile"
               subtitle="Update your personal information"
-              onPress={() => console.log("Edit Profile")}
+              onPress={() => router.push("/(BookersTabs)/editProfile")}
             />
             <SettingsItem
               icon="lock"
@@ -66,26 +66,26 @@ const Settings = () => {
               value={notificationsEnabled}
               onToggle={setNotificationsEnabled}
             />
-            <SettingsToggle
+            {/* <SettingsToggle
               icon="weather-night"
               title="Dark Mode"
               subtitle="Switch to dark theme"
               value={darkModeEnabled}
               onToggle={setDarkModeEnabled}
-            />
-            <SettingsToggle
+            /> */}
+            {/* <SettingsToggle
               icon="map-marker"
               title="Location Services"
               subtitle="Allow location access"
               value={locationEnabled}
               onToggle={setLocationEnabled}
-            />
-            <SettingsItem
+            /> */}
+            {/* <SettingsItem
               icon="translate"
               title="Language"
               subtitle="English (US)"
               onPress={() => console.log("Language")}
-            />
+            /> */}
           </View>
         </View>
 
@@ -134,17 +134,17 @@ const Settings = () => {
 
 interface SettingsItemProps {
   icon:
-    | "delete"
-    | "information"
-    | "email"
-    | "help-circle"
-    | "translate"
-    | "map-marker"
-    | "weather-night"
-    | "bell"
-    | "key"
-    | "lock"
-    | "account-edit";
+  | "delete"
+  | "information"
+  | "email"
+  | "help-circle"
+  | "translate"
+  | "map-marker"
+  | "weather-night"
+  | "bell"
+  | "key"
+  | "lock"
+  | "account-edit";
   title: string;
   subtitle?: string;
   onPress: () => void;
@@ -192,17 +192,17 @@ const SettingsItem = ({
 
 interface SettingsToggleProps {
   icon:
-    | "delete"
-    | "information"
-    | "email"
-    | "help-circle"
-    | "translate"
-    | "map-marker"
-    | "weather-night"
-    | "bell"
-    | "key"
-    | "lock"
-    | "account-edit";
+  | "delete"
+  | "information"
+  | "email"
+  | "help-circle"
+  | "translate"
+  | "map-marker"
+  | "weather-night"
+  | "bell"
+  | "key"
+  | "lock"
+  | "account-edit";
   title: string;
   subtitle?: string;
   value: boolean;

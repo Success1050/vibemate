@@ -21,7 +21,6 @@ interface Hotel {
   image: string;
   rating: number;
   reviews: number;
-  price: number;
   location: string;
   amenities: string[];
   distance: string;
@@ -73,7 +72,6 @@ const HotelSelectionScreen = () => {
           image: getPhotoUrl(place.photos?.[0]?.photo_reference),
           rating: place.rating || 0,
           reviews: place.user_ratings_total || 0,
-          price: 150, // Mock price as Google Places Nearby Search doesn't provide it
           location: place.vicinity || "Nearby location",
           amenities: ["wifi", "parking"], // Mock amenities
           distance: "Nearby",
@@ -97,7 +95,11 @@ const HotelSelectionScreen = () => {
       setUpdating(true);
       const { error } = await supabase
         .from("bookings")
-        .update({ hotel: selectedHotel.name })
+        .update({
+          hotel: selectedHotel.name,
+          hotel_location: selectedHotel.location,
+          hotel_img: selectedHotel.image,
+        })
         .eq("id", bookingId);
 
       if (error) {
@@ -106,7 +108,10 @@ const HotelSelectionScreen = () => {
         return;
       }
 
-      router.push("/PaymentConfirmed");
+      router.push({
+        pathname: "/PaymentConfirmed",
+        params: { bookingId },
+      });
     } catch (error) {
       console.error("Unexpected error updating hotel:", error);
     } finally {
@@ -193,10 +198,6 @@ const HotelSelectionScreen = () => {
                   </View>
 
                   <View style={styles.priceRow}>
-                    <View>
-                      <Text style={styles.priceLabel}>Estimated Price</Text>
-                      <Text style={styles.priceAmount}>₦{hotel.price.toLocaleString()}</Text>
-                    </View>
                     <TouchableOpacity
                       style={[
                         styles.selectButton,

@@ -14,7 +14,7 @@ export interface ProfileData {
   name: string;
   nickname: string;
   description: string;
-  // profileImage: any;
+  profile_img?: string;
   age: number;
   location: string;
   specificAddress: string;
@@ -134,7 +134,7 @@ export interface availability_slots {
   timeSlot: TimeSlot[];
 }
 
-export interface OsProfileType{
+export interface OsProfileType {
   bio: string;
   featured: boolean;
   full_name: string;

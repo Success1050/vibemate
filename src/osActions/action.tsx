@@ -50,16 +50,21 @@ export const saveOsProfile = async (
       city: profileData.location,
       specific_address: profileData.specificAddress,
       country: profileData.country,
-      profile_image_url: "",
+      profile_image_url: profileData.profile_img || "",
       languages: profileData.languages,
-      // image_url: mediaGallery.mainImages,
-      // videos_urls: mediaGallery.videoSource,
+      image_url: mediaGallery.mainImages,
+      videos_urls: mediaGallery.videoSource ? [mediaGallery.videoSource] : [],
       show_location: privacy.showLocation,
       show_age: privacy.showAge,
       show_phone: privacy.showPhone,
     },
     { onConflict: "id" }
   );
+
+  // Also update global profile image
+  if (profileData.profile_img) {
+    await supabase.from("profiles").update({ profile_img: profileData.profile_img }).eq("id", profileid);
+  }
 
   if (error) {
     console.log(error);
@@ -86,7 +91,8 @@ export const getOsProfile = async (
     profiles!inner (
       id,
       user_id,
-      role
+      role,
+      profile_img
     )
   `
     )
@@ -112,8 +118,22 @@ export const getOsProfile = async (
     country: data.country || "",
     languages: data.languages || [],
     isVerified: data.is_verified || false,
+    profile_img: data.profiles?.profile_img || data.profile_image_url || "",
   };
-  return { success: true, data: normalized };
+
+  // Extract media gallery if needed by caller, but generally we return ProfileData which doesn't have media gallery.
+  // Wait, the caller expects ProfileData. MediaGallery is separate in the component state.
+  // We should return media gallery data too if possible, OR the component handles it.
+  // The component sets ProfileData from this return.
+  // And it sets MediaGallery default state.
+  // We need to return MediaGallery data too!
+
+  const media = {
+    mainImages: data.image_url || [],
+    videoSource: data.videos_urls?.[0] || "",
+  };
+
+  return { success: true, data: normalized, media };
 };
 
 export const upsertAvailability = async (

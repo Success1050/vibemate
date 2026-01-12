@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StreamVideoClient } from "@stream-io/video-react-native-sdk";
 import type { Session } from "@supabase/supabase-js";
 import React, {
@@ -39,7 +40,49 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   const streamClientRef = useRef<StreamVideoClient | null>(null);
 
-  // --- init user + role + stream client ---
+  // --- background: init stream client ---
+  const initStreamClient = async (user: { id: string; email?: string }) => {
+    try {
+      // fetch stream token
+      const resp = await fetch(
+        "https://vibemate-backend.onrender.com/get-stream-token",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: user.id }),
+        }
+      );
+
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => "No body");
+        console.warn(`Stream token fetch failed: ${resp.status} - ${text}`);
+        return;
+      }
+
+      const { token } = await resp.json();
+
+      const apiKey = "ape3y3rstefa";
+      const streamUser = {
+        id: user.id,
+        name: user.email,
+        image: "https://robohash.org/John",
+      };
+
+      if (!streamClientRef.current) {
+        streamClientRef.current = new StreamVideoClient({
+          apiKey,
+          user: streamUser,
+          token,
+        });
+        setClient(streamClientRef.current);
+        setRefreshKey((prev) => prev + 1);
+      }
+    } catch (error) {
+      console.error("Stream init error:", error);
+    }
+  };
+
+  // --- init user + role ---
   const init = async (session: Session | null) => {
     try {
       if (!session?.user) {
@@ -52,11 +95,19 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           streamClientRef.current = null;
           setClient(null);
         }
+        setLoading(false);
       } else {
         // session exists → set session
         setUserSession(session);
 
-        // fetch role
+        // 1. Try Cache & Unblock UI immediately
+        const cachedRole = await AsyncStorage.getItem("user_role");
+        if (cachedRole) {
+          setRole(cachedRole as Role);
+          setLoading(false);
+        }
+
+        // 2. Fetch Fresh Role (Background update)
         const { data, error: roleErr } = await supabase
           .from("profiles")
           .select("role")
@@ -65,51 +116,26 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (roleErr) {
           console.warn("role fetch warning:", roleErr);
-          setRole(null);
+          if (!cachedRole) setRole(null);
         } else {
-          setRole((data as any)?.role ?? null);
-        }
-
-        // fetch stream token
-        const resp = await fetch(
-          "https://vibemate-backend.onrender.com/get-stream-token",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: session.user.id }),
+          const freshRole = (data as any)?.role ?? null;
+          if (freshRole !== role) {
+            setRole(freshRole);
           }
-        );
-
-        if (!resp.ok) {
-          const text = await resp.text().catch(() => "No body");
-          throw new Error(
-            `Stream token fetch failed: ${resp.status} ${resp.statusText} → ${text}`
-          );
+          if (freshRole) {
+            await AsyncStorage.setItem("user_role", freshRole);
+          }
         }
 
-        const { token } = await resp.json();
+        // Ensure loading is off (in case no cache found)
+        setLoading(false);
 
-        const apiKey = "ape3y3rstefa";
-        const user = {
-          id: session.user.id,
-          name: session.user.email,
-          image: "https://robohash.org/John",
-        };
-
-        if (!streamClientRef.current) {
-          streamClientRef.current = new StreamVideoClient({
-            apiKey,
-            user,
-            token,
-          });
-          setClient(streamClientRef.current);
-          setRefreshKey((prev) => prev + 1); // 👈 force rerender when client ready
-        }
+        // Init stream in background
+        initStreamClient(session.user);
       }
     } catch (err) {
       console.error("AppProvider init error:", err);
       setError(err instanceof Error ? err.message : "Init failed");
-    } finally {
       setLoading(false);
     }
   };

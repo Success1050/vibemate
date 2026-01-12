@@ -5,6 +5,7 @@ import React, {
   createContext,
   PropsWithChildren,
   useContext,
+  useEffect,
   useState,
 } from "react";
 
@@ -22,10 +23,10 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   role: null,
-  setauth: () => {},
-  setUserData: () => {},
-  setUserRole: () => {},
-  logout: async () => {},
+  setauth: () => { },
+  setUserData: () => { },
+  setUserRole: () => { },
+  logout: async () => { },
 });
 
 export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
@@ -38,6 +39,29 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
       setRole(null);
     }
   };
+
+  useEffect(() => {
+    // 1. Initial Session Check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user);
+      }
+    });
+
+    // 2. Listen for Auth Changes
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+        if (!session?.user) {
+          setRole(null);
+        }
+      }
+    );
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
 
   // Accept any shape (profile returned from profiles table) and set role if present
   const setUserData = (userData: Record<string, any>) => {

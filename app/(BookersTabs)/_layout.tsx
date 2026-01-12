@@ -38,6 +38,20 @@ const TabsLayout = () => {
       />
 
       <Tabs.Screen
+        name="Bookings"
+        options={{
+          title: "My Bookings",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="calendar-check"
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
         name="ProfileView"
         options={{
           title: "Profile",
@@ -48,6 +62,14 @@ const TabsLayout = () => {
               color={color}
             />
           ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="editProfile"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
         }}
       />
     </Tabs>

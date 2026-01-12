@@ -1,3 +1,4 @@
+import { supabase } from "@/lib/supabase";
 import { getAllBookings } from "@/src/osActions/action";
 import { useApp } from "@/store";
 type BookingItem = {
@@ -6,6 +7,7 @@ type BookingItem = {
   start_time: string;
   end_time: string;
   night_rate: number;
+  rejected: boolean;
   total_amount: number;
   status: string;
   created_at: string;
@@ -25,14 +27,14 @@ type BookingItem = {
 // import { BookingItem } from "@/tsx-types";
 import React, { useEffect, useState } from "react";
 import {
-  Image,
+  Alert, Image,
   RefreshControl,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 // import { Check, X, Clock, MapPin, Calendar, Users } from "lucide-react";
 
@@ -56,6 +58,7 @@ const BookingsScreen = () => {
             night_rate: item.night_rate,
             total_amount: item.total_amount,
             status: item.status,
+            rejected: item.rejected,
             created_at: item.created_at,
             os_id: item.os_id,
             booker_id: item.booker_id,
@@ -65,9 +68,9 @@ const BookingsScreen = () => {
                 booker.profile_image_url || "https://via.placeholder.com/150",
             },
             hotel: {
-              name: `Hotel #${item.os_id}`,
-              image: "https://via.placeholder.com/300x200",
-              location: "Not specified",
+              name: item.hotel || "Not selected",
+              image: item.hotel_img || "https://via.placeholder.com/300x200", // Fallback image
+              location: item.hotel_location || "Not specified",
             },
           };
         });
@@ -89,24 +92,56 @@ const BookingsScreen = () => {
     setRefresh(false);
   };
 
-  const handleAccept = (bookingId: string) => {
-    setBookings((prevBookings) =>
-      prevBookings.map((booking) =>
-        booking.id === bookingId ? { ...booking, status: "accepted" } : booking
-      )
-    );
-    // Add your API call here to update the booking status
-    console.log("Accepted booking:", bookingId);
+  const handleAccept = async (bookingId: string) => {
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .update({ rejected: false })
+        .eq("id", bookingId);
+
+      if (error) {
+        console.error("Accept error:", error);
+        Alert.alert("❌ Error", "Failed to accept booking: " + error.message);
+        return;
+      }
+
+      setBookings((prevBookings) =>
+        prevBookings.map((booking) =>
+          booking.id === bookingId ? { ...booking, status: "accepted", rejected: false } : booking
+        )
+      );
+      Alert.alert("✅ Success", "Booking accepted successfully");
+      fetchAllBookings();
+    } catch (err) {
+      console.error("Unexpected accept error:", err);
+      Alert.alert("❌ Error", "An unexpected error occurred");
+    }
   };
 
-  const handleReject = (bookingId: string) => {
-    setBookings((prevBookings) =>
-      prevBookings.map((booking) =>
-        booking.id === bookingId ? { ...booking, status: "cancelled" } : booking
-      )
-    );
-    // Add your API call here to update the booking status
-    console.log("Rejected booking:", bookingId);
+  const handleReject = async (bookingId: string) => {
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .update({ rejected: true })
+        .eq("id", bookingId);
+
+      if (error) {
+        console.error("Reject error:", error);
+        Alert.alert("❌ Error", "Failed to reject booking: " + error.message);
+        return;
+      }
+
+      setBookings((prevBookings) =>
+        prevBookings.map((booking) =>
+          booking.id === bookingId ? { ...booking, status: "cancelled", rejected: true } : booking
+        )
+      );
+      Alert.alert("✅ Successfully", "Booking Rejected successfully");
+      fetchAllBookings();
+    } catch (err) {
+      console.error("Unexpected reject error:", err);
+      Alert.alert("❌ Error", "An unexpected error occurred");
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -164,21 +199,24 @@ const BookingsScreen = () => {
       >
         {bookings.map((booking) => (
           <View key={booking.id} style={styles.bookingCard}>
-            {/* Status Badge */}
-            <View
-              style={[
-                styles.statusBadge,
-                { backgroundColor: getStatusColor(booking.status) + "20" },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.statusText,
-                  { color: getStatusColor(booking.status) },
-                ]}
-              >
-                {getStatusText(booking.status)}
-              </Text>
+            {/* Status Tag */}
+            <View style={styles.statusTagContainer}>
+              {booking.rejected === true ? (
+                <View style={[styles.statusTag, styles.rejectedTag]}>
+                  <View style={[styles.statusDot, styles.rejectedDot]} />
+                  <Text style={[styles.statusTagText, styles.rejectedText]}>Rejected</Text>
+                </View>
+              ) : booking.rejected === false ? (
+                <View style={[styles.statusTag, styles.acceptedTag]}>
+                  <View style={[styles.statusDot, styles.acceptedDot]} />
+                  <Text style={[styles.statusTagText, styles.acceptedText]}>Accepted</Text>
+                </View>
+              ) : (
+                <View style={[styles.statusTag, styles.pendingTag]}>
+                  <View style={[styles.statusDot, styles.pendingDot]} />
+                  <Text style={[styles.statusTagText, styles.pendingText]}>Pending Approval</Text>
+                </View>
+              )}
             </View>
 
             {/* Booker Information */}
@@ -237,8 +275,7 @@ const BookingsScreen = () => {
             </View>
 
             {/* Action Buttons */}
-            {(booking.status === "pending_payment" ||
-              booking.status === "payment_held") && (
+            {booking.rejected === null && (
               <View style={styles.actionButtons}>
                 <TouchableOpacity
                   style={[styles.button, styles.rejectButton]}
@@ -302,16 +339,53 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  statusBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+  statusTagContainer: {
     marginBottom: 16,
   },
-  statusText: {
+  statusTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    alignSelf: "flex-start",
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  statusTagText: {
     fontSize: 12,
     fontWeight: "600",
+  },
+  acceptedTag: {
+    backgroundColor: "#D1FAE5",
+  },
+  acceptedDot: {
+    backgroundColor: "#10B981",
+  },
+  acceptedText: {
+    color: "#065F46",
+  },
+  rejectedTag: {
+    backgroundColor: "#FEE2E2",
+  },
+  rejectedDot: {
+    backgroundColor: "#EF4444",
+  },
+  rejectedText: {
+    color: "#991B1B",
+  },
+  pendingTag: {
+    backgroundColor: "#FEF3C7",
+  },
+  pendingDot: {
+    backgroundColor: "#F59E0B",
+  },
+  pendingText: {
+    color: "#92400E",
   },
   hotelSection: {
     flexDirection: "row",

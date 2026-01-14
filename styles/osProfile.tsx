@@ -376,4 +376,25 @@ export const styles = StyleSheet.create({
     color: "#1D1D1F",
     marginLeft: 12,
   },
+  videoPreviewContainer: {
+    marginTop: 12,
+  },
+  removeVideoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFF5F5',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FF3B30',
+  },
+  removeVideoText: {
+    color: '#FF3B30',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
 });

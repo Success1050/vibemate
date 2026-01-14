@@ -68,7 +68,7 @@ const Signup = () => {
   return (
     <ScreenWrapper bg="white">
       <StatusBar style="dark" />
-      <ScrollView>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}>
         <View style={styles.container}>
           <Backbutton router={router} size={24} />
           {/* Header */}

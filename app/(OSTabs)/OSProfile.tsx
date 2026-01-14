@@ -8,6 +8,7 @@ import { useApp } from "@/store";
 import { styles } from "@/styles/osProfile";
 import { MediaGallery, PrivacySettings, ProfileData } from "@/tsx-types";
 import { Ionicons } from "@expo/vector-icons";
+import { Video } from 'expo-av';
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 
@@ -125,7 +126,6 @@ const ProfileSettings = () => {
         });
 
       if (uploadError) throw uploadError;
-
       const { data } = supabase.storage.from('profileImage').getPublicUrl(filePath);
       return data.publicUrl;
     } catch (error) {
@@ -135,9 +135,10 @@ const ProfileSettings = () => {
     }
   };
 
+
   const pickAvatar = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.5,
@@ -208,16 +209,17 @@ const ProfileSettings = () => {
         privacy,
         userSession,
         role
-      )
-        .then((res) => console.log(res))
-        .catch((err) => console.log("Error:", err));
+      );
 
-      // if (res?.success) {
-      //   Alert.alert("Success", "Profile updated successfully!");
-      // } else {
-      //   Alert.alert("Error", "Failed to update profile. Please try again.");
-      // }
+      console.log("Save response:", res);
+
+      if (res?.success) {
+        Alert.alert("Success", "Profile updated successfully!");
+      } else {
+        Alert.alert("Error", "Failed to update profile. Please try again.");
+      }
     } catch (error) {
+      console.log("Error saving profile:", error);
       Alert.alert("Error", "An unexpected error occurred.");
     } finally {
       setLoading(false);
@@ -378,18 +380,18 @@ const ProfileSettings = () => {
           </Text>
         </View>
 
-        <View style={styles.locationPreview}>
+        {/* <View style={styles.locationPreview}>
           <Text style={styles.previewTitle}>Location Preview</Text>
           <View style={styles.mapPlaceholder}>
             <Ionicons name="location" size={32} color="#007AFF" />
             <Text style={styles.mapText}>Map preview will appear here</Text>
           </View>
-        </View>
+        </View> */}
 
-        <TouchableOpacity style={styles.updateLocationButton}>
+        {/* <TouchableOpacity style={styles.updateLocationButton}>
           <Ionicons name="location-outline" size={20} color="#007AFF" />
           <Text style={styles.updateLocationText}>Update Location on Map</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
     </View>
   );
@@ -448,12 +450,40 @@ const ProfileSettings = () => {
           Add a short video to introduce yourself
         </Text>
 
-        <TouchableOpacity style={styles.videoUploadButton} onPress={pickVideo} disabled={uploading}>
-          <Ionicons name="videocam" size={24} color="#007AFF" />
-          <Text style={styles.videoUploadText}>{mediaGallery.videoSource ? "Video Selected" : "Upload Video"}</Text>
-        </TouchableOpacity>
+        {mediaGallery.videoSource ? (
+          <View style={styles.videoPreviewContainer}>
+            <Video
+              source={{ uri: mediaGallery.videoSource }}
+              style={{
+                width: '100%',
+                height: 200,
+                borderRadius: 8,
+                backgroundColor: '#000'
+              }}
+              useNativeControls
+              // resizeMode=""
+              isLooping
+            />
+            <TouchableOpacity
+              style={styles.removeVideoButton}
+              onPress={() => setMediaGallery(prev => ({ ...prev, videoSource: '' }))}
+            >
+              <Ionicons name="close-circle" size={24} color="#FF3B30" />
+              <Text style={styles.removeVideoText}>Remove Video</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.videoUploadButton}
+            onPress={pickVideo}
+            disabled={uploading}
+          >
+            <Ionicons name="videocam" size={24} color="#007AFF" />
+            <Text style={styles.videoUploadText}>Upload Video</Text>
+          </TouchableOpacity>
+        )}
       </View>
-    </View>
+    </View >
   );
 
   const renderPrivacyTab = () => (
@@ -554,13 +584,13 @@ const ProfileSettings = () => {
       <View style={styles.infoCard}>
         <Text style={styles.cardTitle}>Safety & Security</Text>
 
-        <TouchableOpacity style={styles.safetyOption}>
+        {/* <TouchableOpacity style={styles.safetyOption}>
           <View style={styles.safetyLeft}>
             <Ionicons name="shield-checkmark" size={24} color="#34C759" />
             <Text style={styles.safetyText}>Two-Factor Authentication</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <TouchableOpacity style={styles.safetyOption}>
           <View style={styles.safetyLeft}>
@@ -570,13 +600,13 @@ const ProfileSettings = () => {
           <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.safetyOption}>
+        {/* <TouchableOpacity style={styles.safetyOption}>
           <View style={styles.safetyLeft}>
             <Ionicons name="people" size={24} color="#FF9500" />
             <Text style={styles.safetyText}>Blocked Users</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <TouchableOpacity
           style={styles.safetyOption}

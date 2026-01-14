@@ -353,6 +353,9 @@ export const styles = StyleSheet.create({
   modalScrollView: {
     flex: 1,
   },
+  modalScrollContent: {
+    paddingBottom: 40,
+  },
 
   // Calendar Styles
   calendarContainer: {

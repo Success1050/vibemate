@@ -9,12 +9,14 @@ import {
 } from "@/src/osActions/action";
 import { useApp } from "@/store";
 import { styles } from "@/styles/OSBookingmanage";
-import { DateTimeSlot, Ospricesettings, PricingSettings, TimeSlot } from "@/tsx-types";
+import { DateTimeSlot, Ospricesettings, TimeSlot } from "@/tsx-types";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   Switch,
   Text,
@@ -38,17 +40,22 @@ const BookingManagement = () => {
     const fetchDateTime = async () => {
       const res = await getdateTimeSlots(userSession, role);
       if (res && res.success) {
-        const withIds = (res.data ?? []).map((dateSlot: any) => ({
-          date: dateSlot.date,
-          timeSlots: (dateSlot.timeSlots || []).map(
-            (slot: any, idx: number) => ({
-              id: idx,
-              start: slot.start,
-              end: slot.end,
-              isAvailable: slot.isAvailable ?? true,
-            })
-          ),
-        }));
+        const today = new Date().toISOString().split("T")[0];
+
+        // Filter out past dates and map with IDs
+        const withIds = (res.data ?? [])
+          .filter((dateSlot: any) => dateSlot.date >= today)
+          .map((dateSlot: any) => ({
+            date: dateSlot.date,
+            timeSlots: (dateSlot.timeSlots || []).map(
+              (slot: any, idx: number) => ({
+                id: idx,
+                start: slot.start,
+                end: slot.end,
+                isAvailable: slot.isAvailable ?? true,
+              })
+            ),
+          }));
         setDateTimeSlots(withIds);
       } else console.log(res.error);
     };
@@ -252,11 +259,23 @@ const BookingManagement = () => {
   const handleSave = async () => {
     try {
       setLoading(true);
+      console.log("Starting save with dateTimeSlots:", dateTimeSlots);
+      console.log("UserSession:", userSession?.user?.id);
+      console.log("Role:", role);
+
       const res = await upsertAvailability(dateTimeSlots, userSession, role);
-      if (!res.success) console.error(res.error);
-      else Alert.alert("Success", "Availability updated successfully");
+
+      console.log("Save response:", res);
+
+      if (!res.success) {
+        console.error("Save failed:", res.error);
+        Alert.alert("Error", res.error || "Failed to save availability");
+      } else {
+        Alert.alert("Success", "Availability updated successfully");
+      }
     } catch (error) {
-      console.log(error);
+      console.error("Save error:", error);
+      Alert.alert("Error", "An unexpected error occurred while saving");
     } finally {
       setLoading(false);
     }
@@ -430,7 +449,10 @@ const BookingManagement = () => {
         animationType="slide"
         onRequestClose={() => setShowDateTimeModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Set Available Date & Time</Text>
@@ -447,7 +469,12 @@ const BookingManagement = () => {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalScrollView}>
+            <ScrollView
+              style={styles.modalScrollView}
+              contentContainerStyle={styles.modalScrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
               {/* Calendar */}
               <View style={styles.calendarContainer}>
                 <Text style={styles.calendarTitle}>Select Date</Text>
@@ -547,7 +574,7 @@ const BookingManagement = () => {
               )}
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

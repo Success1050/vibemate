@@ -141,75 +141,113 @@ export const upsertAvailability = async (
   userSession: Session | null,
   role: string | null
 ) => {
-  if (!userSession) return { success: false, error: "User not authenticated" };
+  try {
+    if (!userSession) return { success: false, error: "User not authenticated" };
 
-  const { id: userId } = userSession.user;
-
-  // 1️⃣ Get profile id
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("role", role)
-    .single();
-
-  if (profileError || !profile)
-    return {
-      success: false,
-      error: profileError?.message || "Profile not found",
-    };
-
-  for (const dateSlot of dateTimeSlots) {
-    const { date, timeSlots } = dateSlot;
-
-    // 2️⃣ Fetch existing row for this date
-    const { data: existingRow, error: fetchError } = await supabase
-      .from("availability_slots")
-      .select("id, time_slots")
-      .eq("profile_id", profile.id)
-      .eq("available_date", date)
-      .maybeSingle();
-
-    if (fetchError) {
-      console.error("Fetch error:", fetchError);
-      continue;
+    if (!dateTimeSlots || dateTimeSlots.length === 0) {
+      return { success: false, error: "No availability slots to save" };
     }
 
-    if (existingRow) {
-      // 3️⃣ Merge new time slots (avoid duplicates)
-      const existing = existingRow.time_slots || [];
-      const merged = [
-        ...existing,
-        ...timeSlots.filter(
-          (slot) =>
-            !existing.some(
-              (ex: any) => ex.start === slot.start && ex.end === slot.end
-            )
-        ),
-      ];
+    // Filter out past dates to avoid constraint violation
+    const today = new Date().toISOString().split("T")[0];
+    const futureDateSlots = dateTimeSlots.filter(slot => slot.date >= today);
 
-      // 4️⃣ Update that row with merged array
-      const { error: updateError } = await supabase
-        .from("availability_slots")
-        .update({ time_slots: merged })
-        .eq("id", existingRow.id);
-
-      if (updateError) console.error("Update failed:", updateError);
-    } else {
-      // 5️⃣ Insert new row for this date
-      const { error: insertError } = await supabase
-        .from("availability_slots")
-        .insert({
-          profile_id: profile.id,
-          available_date: date,
-          time_slots: timeSlots,
-        });
-
-      if (insertError) console.error("Insert failed:", insertError);
+    if (futureDateSlots.length === 0) {
+      return { success: false, error: "No future dates to save. Past dates cannot be saved." };
     }
+
+    if (futureDateSlots.length < dateTimeSlots.length) {
+      console.log(`Filtered out ${dateTimeSlots.length - futureDateSlots.length} past date(s)`);
+    }
+
+    const { id: userId } = userSession.user;
+
+    // 1️⃣ Get profile id
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("role", role)
+      .single();
+
+    if (profileError || !profile) {
+      console.error("Profile error:", profileError);
+      return {
+        success: false,
+        error: profileError?.message || "Profile not found",
+      };
+    }
+
+    console.log("Profile found:", profile.id);
+
+    for (const dateSlot of futureDateSlots) {
+      const { date, timeSlots } = dateSlot;
+
+      console.log(`Processing date: ${date} with ${timeSlots.length} slots`);
+
+      // 2️⃣ Fetch existing row for this date
+      const { data: existingRow, error: fetchError } = await supabase
+        .from("availability_slots")
+        .select("id, time_slots")
+        .eq("profile_id", profile.id)
+        .eq("available_date", date)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error("Fetch error:", fetchError);
+        return { success: false, error: `Fetch error: ${fetchError.message}` };
+      }
+
+      if (existingRow) {
+        // 3️⃣ Merge new time slots (avoid duplicates)
+        const existing = existingRow.time_slots || [];
+        const merged = [
+          ...existing,
+          ...timeSlots.filter(
+            (slot) =>
+              !existing.some(
+                (ex: any) => ex.start === slot.start && ex.end === slot.end
+              )
+          ),
+        ];
+
+        console.log(`Updating existing row with ${merged.length} total slots`);
+
+        // 4️⃣ Update that row with merged array
+        const { error: updateError } = await supabase
+          .from("availability_slots")
+          .update({ time_slots: merged })
+          .eq("id", existingRow.id);
+
+        if (updateError) {
+          console.error("Update failed:", updateError);
+          return { success: false, error: `Update error: ${updateError.message}` };
+        }
+      } else {
+        // 5️⃣ Insert new row for this date
+        console.log(`Inserting new row with ${timeSlots.length} slots`);
+
+        const { error: insertError } = await supabase
+          .from("availability_slots")
+          .insert({
+            profile_id: profile.id,
+            available_date: date,
+            time_slots: timeSlots,
+          });
+
+        if (insertError) {
+          console.error("Insert failed:", insertError);
+          return { success: false, error: `Insert error: ${insertError.message}` };
+        }
+      }
+    }
+
+    console.log("All slots saved successfully");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Unexpected error in upsertAvailability:", error);
+    return { success: false, error: error?.message || "Unexpected error occurred" };
   }
-
-  return { success: true };
 };
 
 export const getdateTimeSlots = async (

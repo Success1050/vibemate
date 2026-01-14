@@ -10,7 +10,7 @@ import Feather from "@expo/vector-icons/Feather";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useRef, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -47,100 +47,69 @@ const Login = () => {
   return (
     <ScreenWrapper bg="white">
       <StatusBar style="dark" />
-      <View style={styles.container}>
-        <Backbutton router={router} size={24} />
+      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}>
+        <View style={styles.container}>
+          <Backbutton router={router} size={24} />
 
-        {/* welcome */}
-        <View>
-          <Text style={styles.welcmeText}>Hey,</Text>
-          <Text style={styles.welcmeText}>Welcome back</Text>
-        </View>
+          {/* welcome */}
+          <View>
+            <Text style={styles.welcmeText}>Hey,</Text>
+            <Text style={styles.welcmeText}>Welcome back</Text>
+          </View>
 
-        {/* form text */}
+          {/* form text */}
 
-        <View style={styles.form}>
-          <Text style={{ fontSize: hp(1.5), color: theme.colors.text }}>
-            Please login to continue
-          </Text>
-
-          <TextInputFields
-            icon={<AntDesign name="mail" size={24} color="black" />}
-            color="#000"
-            placeholder={"Enter your email"}
-            onchangeText={(value) => (emailRef.current = value)}
-            secureTextEntry={false}
-            keyboardType="email-address"
-          />
-          <TextInputFields
-            icon={<Feather name="lock" size={24} color="black" />}
-            color="#000"
-            placeholder={"Enter your password"}
-            onchangeText={(value) => (passwordRef.current = value)}
-            secureTextEntry={true}
-          />
-          <Text style={styles.forgotPassword}>Forgot password</Text>
-
-          {/* button */}
-
-          <Button
-            title="Login"
-            loading={isLoading}
-            buttonStyle={{ backgroundColor: theme.colors.activetabbarcolor }}
-            onpress={() => onsubmit()}
-          />
-        </View>
-
-        <View>
-          <Text
-            style={{
-              textAlign: "center",
-              fontWeight: "bold",
-              fontSize: hp(2.3),
-            }}
-          >
-            Signin with
-          </Text>
-          <View style={styles.socialButtonsContainer}>
-            <Button
-              title="Google"
-              buttonStyle={{ backgroundColor: "#4285F4" }}
-              onpress={() => {}}
-            />
-            <Text
-              style={{
-                textAlign: "center",
-                fontWeight: "bold",
-                fontSize: hp(2.3),
-              }}
-            >
-              OR
+          <View style={styles.form}>
+            <Text style={{ fontSize: hp(1.5), color: theme.colors.text }}>
+              Please login to continue
             </Text>
+
+            <TextInputFields
+              icon={<AntDesign name="mail" size={24} color="black" />}
+              color="#000"
+              placeholder={"Enter your email"}
+              onchangeText={(value) => (emailRef.current = value)}
+              secureTextEntry={false}
+              keyboardType="email-address"
+            />
+            <TextInputFields
+              icon={<Feather name="lock" size={24} color="black" />}
+              color="#000"
+              placeholder={"Enter your password"}
+              onchangeText={(value) => (passwordRef.current = value)}
+              secureTextEntry={true}
+            />
+            <Text style={styles.forgotPassword}>Forgot password</Text>
+
+            {/* button */}
+
             <Button
-              title="Facebook"
-              buttonStyle={{ backgroundColor: "blue" }}
-              onpress={() => {}}
+              title="Login"
+              loading={isLoading}
+              buttonStyle={{ backgroundColor: theme.colors.activetabbarcolor }}
+              onpress={() => onsubmit()}
             />
           </View>
-        </View>
 
-        {/* footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have an account?</Text>
-          <Pressable onPress={() => router.push("/signup")}>
-            <Text
-              style={[
-                styles.footerText,
-                {
-                  color: theme.colors.activetabbarcolor,
-                  fontWeight: "semibold",
-                },
-              ]}
-            >
-              Signup
-            </Text>
-          </Pressable>
+          {/* footer */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Don't have an account?</Text>
+            <Pressable onPress={() => router.push("/signup")}>
+              <Text
+                style={[
+                  styles.footerText,
+                  {
+                    color: theme.colors.activetabbarcolor,
+                    fontWeight: "semibold",
+                  },
+                ]}
+              >
+                Signup
+              </Text>
+            </Pressable>
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </ScreenWrapper>
   );
 };
@@ -152,11 +121,6 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 30,
     paddingHorizontal: wp(5),
-  },
-
-  socialButtonsContainer: {
-    gap: 5,
-    marginTop: 5,
   },
 
   welcmeText: {

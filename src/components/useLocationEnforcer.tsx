@@ -55,30 +55,32 @@ export default function useLocationEnforcer() {
       }
 
       // 3. Get current location
-      const currentLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
+      try {
+        const currentLocation = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High, // 🔥 change this
+        });
 
-      const latitude = currentLocation.coords.latitude;
-      const longitude = currentLocation.coords.longitude;
+        const { latitude, longitude } = currentLocation.coords;
 
-      // 4. Store to Supabase (update user's profile)
-      if (userSession?.user?.id) {
-        const { error } = await supabase
-          .from("profiles")
-          .update({ latitude, longitude })
-          .eq("user_id", userSession.user.id);
+        if (userSession?.user?.id) {
+          const { error } = await supabase
+            .from("profiles")
+            .update({ latitude, longitude })
+            .eq("user_id", userSession.user.id);
 
-        if (error) console.log("Failed to insert location:", error.message);
+          if (error) console.log(error.message);
+        }
+
+        setLocation({ latitude, longitude });
+      } catch (error) {
+        console.log("Location error:", error);
       }
 
-      // 5. Save locally to state
-      setLocation({ latitude, longitude });
     };
 
     // Run immediately + every 10 seconds
     checkAndFetchLocation();
-    const interval = setInterval(checkAndFetchLocation, 10000);
+    const interval = setInterval(checkAndFetchLocation, 30000);
 
     return () => clearInterval(interval);
   }, [userSession]);

@@ -21,7 +21,7 @@ export default function Index() {
       const value = await AsyncStorage.getItem("hasSeenOnboarding");
       if (value === null) {
         // First time
-        router.replace("/onboarding");
+        router.replace("/onboarding" as any);
       }
       // If value exists, we stay here (Welcome Screen)
       setLoading(false);

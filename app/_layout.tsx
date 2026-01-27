@@ -16,7 +16,7 @@ function RootLayoutContent() {
   const { userSession, role, client, loading, error, refreshKey } = useApp();
 
   // loading / auth guards same as before ...
-  if (loading || (userSession && (!role || !client))) {
+  if (loading) {
     return (
       <View
         style={{
@@ -58,23 +58,8 @@ function RootLayoutContent() {
     );
   }
 
-  if (userSession && !role) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: theme.colors.activetabbarcolor,
-        }}
-      >
-        <ActivityIndicator size="large" />
-        <Text style={{ color: "white", marginTop: 8 }}>
-          Loading permissions...
-        </Text>
-      </View>
-    );
-  }
+  // Removed redundant role guard to prevent hanging if role fetch fails
+  // The redirect useEffect below will handle unidentified roles by sending them to login.
 
   const player = useAudioPlayer(ringtone);
 
@@ -205,10 +190,23 @@ function RootLayoutContent() {
               <Stack.Screen name="(OSTabs)" />
             </Stack>
           )}
+          {!role && (
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="login" />
+            </Stack>
+          )}
         </StreamVideo>
       ) : (
         <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
+          {role === "booker" && <Stack.Screen name="(BookersTabs)" />}
+          {role === "os" && <Stack.Screen name="(OSTabs)" />}
+          {!role && (
+            <>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="login" />
+            </>
+          )}
         </Stack>
       )}
     </PaystackProvider>

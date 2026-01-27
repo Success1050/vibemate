@@ -12,9 +12,10 @@
       "supportsTablet": true
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+       "adaptiveIcon": {
+        "backgroundColor": "#572083",
+        "foregroundImage": "./assets/icons/adaptive-icon.png",
+        "monochromeImage": "./assets/icons/adaptive-icon.png"
       },
       "edgeToEdgeEnabled": true
     },
@@ -27,11 +28,14 @@
       "expo-router",
       [
         "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
+       {
+          "image": "./assets/icons/adaptive-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#572083",
+          "dark": {
+            "backgroundColor": "#572083"
+          }
         }
       ],
       "expo-video",

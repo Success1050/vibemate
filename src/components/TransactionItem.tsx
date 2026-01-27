@@ -35,7 +35,7 @@ export default function TransactionItem({ item }: { item: Transaction }) {
               isCredit ? styles.creditAmount : styles.debitAmount,
             ]}
           >
-            {isCredit ? "+" : "-"}${item.amount}
+            {isCredit ? "+" : "-"}₦{item.amount}
           </Text>
           <View style={styles.statusContainer}>
             <View

@@ -269,7 +269,7 @@ const BookingsScreen = () => {
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>Total Amount</Text>
                 <Text style={styles.priceValue}>
-                  ${booking.total_amount.toFixed(2)}
+                  ₦{booking.total_amount.toFixed(2)}
                 </Text>
               </View>
             </View>

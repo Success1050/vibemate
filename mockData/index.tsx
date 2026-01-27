@@ -21,7 +21,7 @@ export const notifications: Notification[] = [
     id: "2",
     type: "payment",
     title: "Payment Received",
-    message: "You received $150 for electrical work completion",
+    message: "You received ₦150 for electrical work completion",
     time: "1 hour ago",
     read: false,
   },

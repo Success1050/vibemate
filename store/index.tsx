@@ -83,7 +83,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   // --- init user + role ---
-  const init = async (session: Session | null) => {
+  const init = async (session: Session | null, skipCache = false) => {
     try {
       if (!session?.user) {
         // no session → reset everything
@@ -95,42 +95,66 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           streamClientRef.current = null;
           setClient(null);
         }
+        await AsyncStorage.removeItem("user_role");
         setLoading(false);
       } else {
         // session exists → set session
         setUserSession(session);
 
-        // 1. Try Cache & Unblock UI immediately
-        const cachedRole = await AsyncStorage.getItem("user_role");
+        // 1. Try Cache & Unblock UI immediately (Unless fresh login)
+        const cachedRole = skipCache ? null : await AsyncStorage.getItem("user_role");
         if (cachedRole) {
           setRole(cachedRole as Role);
           setLoading(false);
+        } else {
+          // If no cache and we are not skipping, ensure we are in loading state
+          // (Though loading is usually true by default on bootstrap)
         }
 
         // 2. Fetch Fresh Role (Background update)
-        const { data, error: roleErr } = await supabase
+        // ... (rest of the logic)
+        // Add a safety timeout for the database fetch
+        const profilePromise = supabase
           .from("profiles")
           .select("role")
           .eq("user_id", session.user.id)
           .single();
 
-        if (roleErr) {
-          console.warn("role fetch warning:", roleErr);
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Role fetch timeout")), 5000)
+        );
+
+        try {
+          const { data, error: roleErr } = (await Promise.race([
+            profilePromise,
+            timeoutPromise,
+          ])) as any;
+
+          if (roleErr) {
+            console.warn("role fetch warning:", roleErr);
+            if (!cachedRole) setRole(null);
+          } else {
+            const freshRole = data?.role ?? null;
+            if (freshRole !== role) {
+              setRole(freshRole);
+            }
+            if (freshRole) {
+              await AsyncStorage.setItem("user_role", freshRole);
+            } else if (!cachedRole) {
+              // Sign out if no role is found and no cache exists
+              console.error("User verified but no role found in profiles table.");
+              setRole(null);
+            }
+          }
+        } catch (err) {
+          console.error("Fresh role fetch failed or timed out:", err);
           if (!cachedRole) setRole(null);
-        } else {
-          const freshRole = (data as any)?.role ?? null;
-          if (freshRole !== role) {
-            setRole(freshRole);
-          }
-          if (freshRole) {
-            await AsyncStorage.setItem("user_role", freshRole);
-          }
         }
 
-        // Ensure loading is off (in case no cache found)
+        // Ensure loading is off
         setLoading(false);
 
-        // Init stream in background
+        // Init stream in background (don't wait for it)
         initStreamClient(session.user);
       }
     } catch (err) {
@@ -163,7 +187,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (event === "SIGNED_OUT") {
           await init(null);
-        } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        } else if (event === "SIGNED_IN") {
+          // Fresh login → skip cache to prevent flashing previous user's role
+          await init(session, true);
+        } else if (event === "TOKEN_REFRESHED") {
           await init(session);
         }
       }

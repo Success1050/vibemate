@@ -2,9 +2,9 @@ import { supabase } from "@/lib/supabase";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { theme } from "@/src/constants/themes";
 import { useApp } from "@/store";
-import React, { useEffect, useState } from "react";
 import { styles } from "@/styles/withdrawalStyles";
 import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -19,7 +19,7 @@ import {
 } from "react-native";
 import Toast from "react-native-root-toast";
 
-interface WithdrawalScreenProps {}
+interface WithdrawalScreenProps { }
 
 const WithdrawalScreen: React.FC<WithdrawalScreenProps> = () => {
   const [amount, setAmount] = useState<number>(0);
@@ -91,7 +91,7 @@ const WithdrawalScreen: React.FC<WithdrawalScreenProps> = () => {
     // Confirm withdrawal
     Alert.alert(
       "Confirm Withdrawal",
-      `Are you sure you want to withdraw NGN ${amount.toFixed(
+      `Are you sure you want to withdraw ₦ ${amount.toFixed(
         2
       )} to ${accountName} (${accountNumber})?`,
       [
@@ -216,14 +216,14 @@ const WithdrawalScreen: React.FC<WithdrawalScreenProps> = () => {
           {/* Current Balance Card */}
           <View style={styles.balanceCard}>
             <Text style={styles.balanceLabel}>Available Balance</Text>
-            <Text style={styles.balanceAmount}>NGN {balance.toFixed(2)}</Text>
+            <Text style={styles.balanceAmount}>₦ {balance.toFixed(2)}</Text>
           </View>
 
           {/* Amount Input */}
           <View style={styles.inputSection}>
             <Text style={styles.inputLabel}>Withdrawal Amount</Text>
             <View style={styles.amountContainer}>
-              <Text style={styles.currencySymbol}>NGN</Text>
+              <Text style={styles.currencySymbol}>₦</Text>
               <TextInput
                 style={styles.amountInput}
                 value={amount > 0 ? amount.toString() : ""}
@@ -259,12 +259,12 @@ const WithdrawalScreen: React.FC<WithdrawalScreenProps> = () => {
                     style={[
                       styles.quickAmountButtonText,
                       amount === quickAmount &&
-                        styles.quickAmountButtonTextActive,
+                      styles.quickAmountButtonTextActive,
                       quickAmount > balance &&
-                        styles.quickAmountButtonTextDisabled,
+                      styles.quickAmountButtonTextDisabled,
                     ]}
                   >
-                    NGN{quickAmount}
+                    ₦{quickAmount}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -332,7 +332,7 @@ const WithdrawalScreen: React.FC<WithdrawalScreenProps> = () => {
             style={[
               styles.withdrawalButton,
               (!amount || amount > balance || isProcessing) &&
-                styles.withdrawalButtonDisabled,
+              styles.withdrawalButtonDisabled,
             ]}
             onPress={handleWithdrawal}
             disabled={!amount || amount > balance || isProcessing}
@@ -341,7 +341,7 @@ const WithdrawalScreen: React.FC<WithdrawalScreenProps> = () => {
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text style={styles.withdrawalButtonText}>
-                Withdraw NGN {amount > 0 ? amount.toFixed(2) : "0.00"}
+                Withdraw ₦ {amount > 0 ? amount.toFixed(2) : "0.00"}
               </Text>
             )}
           </TouchableOpacity>

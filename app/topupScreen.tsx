@@ -22,7 +22,7 @@ import {
 import { PaystackTransactionResponse } from "react-native-paystack-webview/production/lib/types";
 import Toast from "react-native-root-toast";
 
-interface TopUpWalletScreenProps {}
+interface TopUpWalletScreenProps { }
 
 const TopUpWalletScreen: React.FC<TopUpWalletScreenProps> = () => {
   const [amount, setAmount] = useState<number>(0);
@@ -124,14 +124,14 @@ const TopUpWalletScreen: React.FC<TopUpWalletScreenProps> = () => {
           {/* Current Balance Card */}
           <View style={styles.balanceCard}>
             <Text style={styles.balanceLabel}>Current Balance</Text>
-            <Text style={styles.balanceAmount}>NGN {balance || 0.0}</Text>
+            <Text style={styles.balanceAmount}>₦ {balance || 0.0}</Text>
           </View>
 
           {/* Amount Input */}
           <View style={styles.inputSection}>
             <Text style={styles.inputLabel}>Amount</Text>
             <View style={styles.amountContainer}>
-              <Text style={styles.currencySymbol}>NGN</Text>
+              <Text style={styles.currencySymbol}>₦</Text>
               <TextInput
                 style={styles.amountInput}
                 value={amount.toString()}
@@ -160,10 +160,10 @@ const TopUpWalletScreen: React.FC<TopUpWalletScreenProps> = () => {
                     style={[
                       styles.quickAmountButtonText,
                       amount === quickAmount &&
-                        styles.quickAmountButtonTextActive,
+                      styles.quickAmountButtonTextActive,
                     ]}
                   >
-                    NGN{quickAmount}
+                    ₦{quickAmount}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -217,7 +217,7 @@ const TopUpWalletScreen: React.FC<TopUpWalletScreenProps> = () => {
             disabled={!amount}
           >
             <Text style={styles.topUpButtonText}>
-              Top Up ${amount || "0.00"}
+              Top Up ₦{amount || "0.00"}
             </Text>
           </TouchableOpacity>
 

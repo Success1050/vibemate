@@ -6,7 +6,6 @@ import {
   ProfileData,
 } from "@/tsx-types";
 import { Session } from "@supabase/supabase-js";
-import { Alert } from "react-native";
 
 export const saveOsProfile = async (
   profileData: ProfileData,
@@ -16,7 +15,7 @@ export const saveOsProfile = async (
   role: string | null
 ) => {
   if (!userSession) {
-    return Alert.alert("Error", "User not authenticated.");
+    return { success: false, error: "User not authenticated." };
   }
 
   const { id: userId } = userSession.user;
@@ -79,7 +78,7 @@ export const getOsProfile = async (
   role: string | null
 ) => {
   if (!userSession) {
-    return Alert.alert("Error", "User not authenticated.");
+    return { success: false, error: "User not authenticated." };
   }
 
   const { id: userId } = userSession.user;

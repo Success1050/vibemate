@@ -95,7 +95,7 @@ export default function WalletScreen() {
                 <View>
                   <Text style={styles.cardLabel}>Available Balance</Text>
                   <Text style={styles.cardAmount}>
-                    {loading ? "Loading..." : `$${balance?.toFixed(2)}`}
+                    {loading ? "Loading..." : `₦${balance?.toFixed(2)}`}
                   </Text>
                 </View>
                 <Wallet size={32} color="#bfdbfe" />

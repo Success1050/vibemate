@@ -61,7 +61,7 @@ export const renderProviderCard = useCallback(
             <Star size={14} color="#FBBF24" />
             <Text style={styles.ratingText}>{provider.rating}</Text>
           </View> */}
-          <Text style={styles.price}>${provider.price_per_night}/night</Text>
+          <Text style={styles.price}>₦{provider.price_per_night}/night</Text>
         </View>
         <Link
           href={{ pathname: "/BookingDetails", params: { id: provider.id } }}

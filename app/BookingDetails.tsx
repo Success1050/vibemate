@@ -159,10 +159,15 @@ const BookingDetails = () => {
     getOsDetails();
   }, [id]);
 
+  // Move player initialization inside useMemo or handle empty URL properly
+  const videoUrl = osDetails?.osprofile?.videos_urls?.[0];
+
   const player = useVideoPlayer(
-    osDetails?.osprofile?.videos_urls?.[0] ?? "",
+    videoUrl || "",
     (player) => {
-      player.loop = true;
+      if (videoUrl) {
+        player.loop = true;
+      }
     }
   );
 
@@ -395,50 +400,58 @@ const BookingDetails = () => {
         </View>
 
         {/* Main Image */}
-        <FlatList
-          data={osDetails?.osprofile.image_url}
-          renderItem={({ item, index }) => (
-            <View style={styles.mainImageContainer}>
-              <Image source={{ uri: item }} style={styles.mainImage} />
-              <View style={styles.imageOverlay}>
-                <View style={styles.imageCounter}>
-                  <Text style={styles.imageCounterText}>
-                    {index + 1} / {osDetails.osprofile.image_url.length}
-                  </Text>
+        {osDetails?.osprofile?.image_url && osDetails.osprofile.image_url.length > 0 ? (
+          <FlatList
+            data={osDetails.osprofile.image_url}
+            renderItem={({ item, index }) => (
+              <View style={styles.mainImageContainer}>
+                <Image source={{ uri: item }} style={styles.mainImage} />
+                <View style={styles.imageOverlay}>
+                  <View style={styles.imageCounter}>
+                    <Text style={styles.imageCounterText}>
+                      {index + 1} / {osDetails.osprofile.image_url.length}
+                    </Text>
+                  </View>
                 </View>
               </View>
-            </View>
-          )}
-          keyExtractor={(item, index) => index.toString()}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-        />
+            )}
+            keyExtractor={(item, index) => index.toString()}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+          />
+        ) : (
+          <View style={[styles.mainImageContainer, { backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' }]}>
+            <Ionicons name="image-outline" size={48} color="#ccc" />
+          </View>
+        )}
 
         {/* Video Section */}
-        <View style={styles.videoContainer}>
-          <VideoView
-            style={styles.video}
-            allowsFullscreen
-            player={player}
-            allowsPictureInPicture
-          />
-          <TouchableOpacity
-            onPress={() => {
-              if (isPlaying) {
-                player.pause();
-              } else {
-                player.play();
-              }
-            }}
-          >
-            <Ionicons
-              name={isPlaying ? "pause" : "play"}
-              size={32}
-              color="white"
+        {osDetails?.osprofile?.videos_urls?.[0] ? (
+          <View style={styles.videoContainer}>
+            <VideoView
+              style={styles.video}
+              allowsFullscreen
+              player={player}
+              allowsPictureInPicture
             />
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              onPress={() => {
+                if (isPlaying) {
+                  player.pause();
+                } else {
+                  player.play();
+                }
+              }}
+            >
+              <Ionicons
+                name={isPlaying ? "pause" : "play"}
+                size={32}
+                color="white"
+              />
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         {/* Profile Section */}
         <View style={styles.profileSection}>

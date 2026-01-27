@@ -70,8 +70,11 @@ const Profile = () => {
     setLoading(true);
     const { error } = await supabase.auth.signOut();
     if (error) {
-      return console.log(error);
+      Alert.alert("Error", error.message);
+      setLoading(false);
+      return;
     }
+    Alert.alert("Success", "User logged out successfully");
     router.replace("/login");
     setLoading(false);
   };

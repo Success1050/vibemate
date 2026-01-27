@@ -111,6 +111,13 @@ interface SelectedSlot {
 }
 
 const BookingDetails = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const todayDateString = `${year}-${month}-${day}`;
+  const currentTimeString = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
   const [selectedSlot, setSelectedSlot] = useState<SelectedSlot | null>(null);
   const router = useRouter();
   const [isLoading, setisLoading] = useState<boolean>(false);
@@ -235,132 +242,67 @@ const BookingDetails = () => {
       return;
     }
 
-    const bookerId = userId;
-    const osId = osDetails.id;
     const { start, end } = selectedSlot.timeSlot;
     const bookingDate = selectedSlot.date;
 
     const duration = getDurationInHours(start, end);
     const hourlyRate = osDetails.pricing_settings.price_per_night;
-    const totalAmount = hourlyRate * duration;
+    const serviceFee = 1000;
 
-    // 1️⃣ Ask user for confirmation
+    const totalAmount = hourlyRate * duration;
+    const grandTotal = totalAmount + serviceFee;
+
     Alert.alert(
       "Confirm Booking",
       `Book ${osDetails.osprofile.nickname} for ${formatDisplayDate(
         bookingDate
-      )} (${start} - ${end})?\n\nThis will deduct ₦${totalAmount.toLocaleString()} from your wallet.`,
+      )} (${start} - ${end})?\n\nThis will deduct ₦${grandTotal.toLocaleString()} from your wallet.`,
       [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
+        { text: "Cancel", style: "cancel" },
         {
           text: "Proceed",
           onPress: async () => {
             try {
               setisLoading(true);
 
-              // 2️⃣ Deduct from wallet via Supabase function
-              const { data: walletRes, error: walletErr } = await supabase.rpc(
-                "debit_wallet",
+              const { data, error } = await supabase.rpc(
+                "create_booking",
                 {
-                  p_user_id: bookerId,
-                  p_amount: totalAmount,
-                  p_description: `Booking ${osDetails.osprofile.nickname
-                    } for ${formatDisplayDate(bookingDate)}`,
+                  p_user_id: userId,
+                  p_role: role,
+                  p_os_id: osDetails.id,
+                  p_availability_slot_id: selectedSlot.slotId,
+                  p_booking_date: bookingDate,
+                  p_start_time: start,
+                  p_end_time: end,
+                  p_hourly_rate: hourlyRate,
+                  p_service_fee: serviceFee,
+                  p_description: `Booking ${osDetails.osprofile.nickname} for ${formatDisplayDate(
+                    bookingDate
+                  )}`,
                 }
               );
 
-              if (walletErr) {
-                console.error("Wallet debit error:", walletErr);
-                Alert.alert(
-                  "Payment Failed",
-                  walletErr.message || "Insufficient balance."
-                );
+
+              if (error) {
+                console.error("Atomic booking failed:", error);
+                Alert.alert("Booking Failed", error.message);
                 return;
-              }
-
-              console.log("Wallet debited:", walletRes);
-
-              const { data: profile, error: profileError } = await supabase
-                .from("profiles")
-                .select("id")
-                .eq("user_id", bookerId)
-                .eq("role", role)
-                .single();
-
-              if (profileError || !profile)
-                return {
-                  success: false,
-                  error: profileError?.message || "Profile not found",
-                };
-              // 3️⃣ Create booking record
-              const { data: bookingData, error: bookingError } = await supabase
-                .from("bookings")
-                .insert([
-                  {
-                    booker_id: profile.id,
-                    os_id: osId,
-                    booking_date: bookingDate,
-                    start_time: start,
-                    end_time: end,
-                    night_rate: hourlyRate,
-                    total_amount: totalAmount,
-                    status: "pending_payment",
-                  },
-                ])
-                .select();
-
-              if (bookingError) {
-                console.error("Error inserting booking:", bookingError);
-                Alert.alert(
-                  "Booking Failed",
-                  "Something went wrong. Try again."
-                );
-                return;
-              }
-
-              if (!bookingError && bookingData && bookingData.length > 0) {
-                const paymentRef = `ESCROW-${Date.now()}-${Math.floor(
-                  Math.random() * 10000
-                )}`;
-
-                const { error: escrowError } = await supabase
-                  .from("escrow_payments")
-                  .insert([
-                    {
-                      booking_id: bookingData[0].id,
-                      booker_id: bookerId,
-                      os_id: osId,
-                      amount: totalAmount,
-                      status: "held",
-                      payment_ref: paymentRef,
-                    },
-                  ]);
-
-                if (escrowError) {
-                  console.log("Error inserting into escrow:", escrowError);
-                  return;
-                } else {
-                  console.log("Escrow payment recorded successfully");
-                }
               }
 
               // ✅ Success
               Alert.alert(
                 "Booking Successful 🎉",
-                `You booked ${osDetails.osprofile.nickname
-                } for ${formatDisplayDate(
+                `You booked ${osDetails.osprofile.nickname} for ${formatDisplayDate(
                   bookingDate
-                )} (${start} - ${end}). ₦${totalAmount.toLocaleString()} was deducted.`,
+                )} (${start} - ${end}). ₦${grandTotal.toLocaleString()} was deducted.`,
                 [
                   {
                     text: "OK",
                     onPress: () =>
                       router.push({
                         pathname: "/hotelSelectionScreen",
-                        params: { bookingId: bookingData[0].id },
+                        params: { bookingId: data.booking_id },
                       }),
                   },
                 ]
@@ -376,6 +318,7 @@ const BookingDetails = () => {
       ]
     );
   };
+
 
   return (
     <ScreenWrapper bg="white">
@@ -558,24 +501,27 @@ const BookingDetails = () => {
                     timeSlot.end ?? ""
                   );
 
+                  const isPast = (slot.available_date ?? "") < todayDateString ||
+                    (slot.available_date === todayDateString && (timeSlot.start ?? "") < currentTimeString);
+
                   return (
                     <TouchableOpacity
                       key={`${index}-${timeSlot.start ?? "start"}`}
                       style={[
                         availabilityStyles.timeSlotCard,
                         isSelected && availabilityStyles.timeSlotCardSelected,
-                        timeSlot.is_booked &&
+                        (timeSlot.is_booked || isPast) &&
                         availabilityStyles.timeSlotCardDisabled,
                       ]}
                       onPress={() =>
-                        !timeSlot.is_booked &&
+                        !timeSlot.is_booked && !isPast &&
                         handleSlotSelection(
                           slot.id!,
                           slot.available_date ?? "",
                           timeSlot
                         )
                       }
-                      disabled={timeSlot.is_booked}
+                      disabled={timeSlot.is_booked || isPast}
                       activeOpacity={0.7}
                     >
                       {/* Checkbox */}
@@ -630,13 +576,19 @@ const BookingDetails = () => {
                       </View>
 
                       {/* Status Badge */}
-                      {timeSlot.is_booked && (
+                      {timeSlot.is_booked ? (
                         <View style={availabilityStyles.bookedBadge}>
                           <Text style={availabilityStyles.bookedText}>
                             Booked
                           </Text>
                         </View>
-                      )}
+                      ) : isPast ? (
+                        <View style={[availabilityStyles.bookedBadge, { backgroundColor: '#F0F0F0' }]}>
+                          <Text style={[availabilityStyles.bookedText, { color: '#999' }]}>
+                            Past
+                          </Text>
+                        </View>
+                      ) : null}
                     </TouchableOpacity>
                   );
                 })}

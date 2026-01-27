@@ -1,8 +1,17 @@
+import { supabase } from "@/lib/supabase";
+import { fetchOsByUserId } from "@/src/bookersActions/action";
 import Backbutton from "@/src/components/Backbutton";
+import { useApp } from "@/store";
+import { OsProviders } from "@/tsx-types";
+import { Ionicons } from "@expo/vector-icons";
+import { useEvent } from "expo";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
+import { useVideoPlayer, VideoView } from "expo-video";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
+  Image,
   ImageBackground,
   ScrollView,
   StatusBar,
@@ -17,111 +26,249 @@ const { width, height } = Dimensions.get("window");
 const videocallDetails = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  if (!id) return;
-  const profileCards = [
-    {
-      id: 1,
-      name: "Franca",
-      emoji: "💛",
-      rate: "60/min",
-      status: "offline",
-      image:
-        "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300&h=400&fit=crop&crop=face",
-      hasRecharge: false,
-    },
-    {
-      id: 2,
-      image:
-        "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300&h=400&fit=crop&crop=face",
-      title: "Gallery 2",
-    },
-    {
-      id: 3,
-      image:
-        "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=300&h=400&fit=crop&crop=face",
-      title: "Gallery 3",
-    },
-  ];
-  const user = profileCards.find((u) => u.id === Number(id));
+  const [osDetails, setOsDetails] = useState<OsProviders | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const { userSession } = useApp();
+
+  useEffect(() => {
+    const getOsDetails = async () => {
+      if (!id) return;
+      try {
+        setIsLoading(true);
+        const res = await fetchOsByUserId(id as string);
+        if (res && res.success) {
+          const rawProfile = Array.isArray(res?.data?.osprofile)
+            ? res?.data?.osprofile[0]
+            : res?.data?.osprofile;
+
+          const rawPricing = Array.isArray(res?.data?.pricing_settings)
+            ? res?.data?.pricing_settings[0]
+            : res?.data?.pricing_settings;
+
+          const formattedData: OsProviders = {
+            id: res?.data?.id,
+            user_id: res?.data?.user_id,
+            email: res?.data?.email,
+            role: res?.data?.role,
+            osprofile: {
+              bio: rawProfile?.bio || "",
+              featured: rawProfile?.featured || false,
+              full_name: rawProfile?.full_name || "",
+              image_url: rawProfile?.image_url || [],
+              is_available: rawProfile?.is_available || false,
+              nickname: rawProfile?.nickname || "",
+              videos_urls: rawProfile?.videos_urls || [],
+            },
+            pricing_settings: {
+              price_per_night: rawPricing?.price_per_night || 0,
+            },
+            availability_slots: [],
+          };
+          setOsDetails(formattedData);
+        }
+      } catch (error) {
+        console.error("Error fetching OS details:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    getOsDetails();
+  }, [id]);
+
+  const videoUrl = osDetails?.osprofile?.videos_urls?.[0];
+  const player = useVideoPlayer(videoUrl || "", (player) => {
+    if (videoUrl) {
+      player.loop = true;
+    }
+  });
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#8B5CF6" />
+        <Text style={styles.loadingText}>Loading profile...</Text>
+      </View>
+    );
+  }
+
+  if (!osDetails) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Profile not found</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const images = osDetails.osprofile.image_url || [];
+  const videos = osDetails.osprofile.videos_urls || [];
 
   return (
     <View style={styles.container}>
       <StatusBar
         backgroundColor="transparent"
         translucent
-        barStyle="dark-content"
+        barStyle="light-content"
       />
 
-      {/* Main Profile Section */}
-      <ImageBackground
-        source={{
-          uri: user?.image,
-        }}
-        style={styles.mainBackground}
-        imageStyle={styles.mainBackgroundImage}
-      >
-        {/* Header with back button */}
-        <View style={styles.header}>
-          <Backbutton router={router} size={24} />
-        </View>
-
-        {/* Profile Info Overlay */}
-        <View style={styles.profileOverlay}>
-          {/* Small profile image */}
-          <View style={styles.smallProfileContainer}>
-            <ImageBackground
-              source={{
-                uri: user?.image,
-              }}
-              style={styles.smallProfileImage}
-              imageStyle={styles.smallProfileImageStyle}
-            />
-          </View>
-
-          {/* Profile Details */}
-          <View style={styles.profileDetails}>
-            <Text style={styles.profileName}>{user?.name}</Text>
-            <Text style={styles.profileId}>ID: 393933030303</Text>
-          </View>
-
-          {/* Bio Section */}
-          <View style={styles.bioContainer}>
-            <Text style={styles.bioText}>I am a very good girl</Text>
-          </View>
-        </View>
-      </ImageBackground>
-
-      {/* Cards Section */}
-      <View style={styles.cardsSection}>
-        <Text style={styles.sectionTitle}>More Photos</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.cardsContainer}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Main Profile Section */}
+        <ImageBackground
+          source={{
+            uri: images[activeImageIndex] || "https://via.placeholder.com/400x600",
+          }}
+          style={styles.mainBackground}
+          imageStyle={styles.mainBackgroundImage}
         >
-          {profileCards.map((card) => (
-            <TouchableOpacity key={card.id} style={styles.card}>
-              <ImageBackground
-                source={{ uri: card.image }}
-                style={styles.cardBackground}
-                imageStyle={styles.cardImageStyle}
-              >
-                <View style={styles.cardOverlay}>
-                  <Text style={styles.cardTitle}>{card.title}</Text>
-                </View>
-              </ImageBackground>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+          {/* Header with back button */}
+          <View style={styles.header}>
+            <Backbutton router={router} size={24} color="white" />
+          </View>
 
-      {/* Message Button */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.messageButton}>
-          <Text style={styles.messageButtonIcon}>💬</Text>
-          <Text style={styles.messageButtonText}>Message Me</Text>
+          {/* Profile Info Overlay */}
+          <View style={styles.profileOverlay}>
+            <View style={styles.profileDetailsRow}>
+              <View style={styles.profileDetails}>
+                <View style={styles.nameRow}>
+                  <Text style={styles.profileName}>{osDetails.osprofile.nickname}</Text>
+                  {osDetails.osprofile.is_available && (
+                    <Ionicons name="checkmark-circle" size={20} color="#10B981" style={{ marginLeft: 8 }} />
+                  )}
+                </View>
+                <Text style={styles.profileRate}>💎 {osDetails.pricing_settings.price_per_night}/min</Text>
+              </View>
+            </View>
+
+            {/* Bio Section */}
+            <View style={styles.bioContainer}>
+              <Text style={styles.bioText}>{osDetails.osprofile.bio || "No bio available"}</Text>
+            </View>
+          </View>
+        </ImageBackground>
+
+        {/* Gallery Section */}
+        {images.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Gallery</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalScroll}
+            >
+              {images.map((img, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[styles.thumbnailCard, activeImageIndex === index && styles.activeThumbnail]}
+                  onPress={() => setActiveImageIndex(index)}
+                >
+                  <Image source={{ uri: img }} style={styles.thumbnailImage} />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Videos Section */}
+        {videos.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Featured Videos</Text>
+              <Ionicons name="videocam" size={20} color="#8B5CF6" />
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalScroll}
+            >
+              {videos.map((video, index) => (
+                <VideoItem key={index} url={video} />
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      {/* Video Call Button */}
+      <View style={styles.floatingButtonContainer}>
+        <TouchableOpacity
+          style={styles.videoCallButton}
+          onPress={async () => {
+            if (!osDetails || !userSession?.user?.id) return;
+
+            try {
+              const channelName = `call_${Date.now()}`;
+
+              router.push({
+                pathname: "/videocallscreen",
+                params: { callId: channelName },
+              });
+
+              await supabase
+                .from("video_calls")
+                .insert([
+                  {
+                    caller_id: userSession.user.id,
+                    callee_id: osDetails.user_id,
+                    status: "pending",
+                    agora_channel_name: channelName,
+                  },
+                ]);
+            } catch (e) {
+              console.error("Error starting call:", e);
+            }
+          }}
+        >
+          <Ionicons name="videocam" size={28} color="white" />
+          <Text style={styles.videoCallButtonText}>Start Video Call</Text>
         </TouchableOpacity>
       </View>
+    </View>
+  );
+};
+
+const VideoItem = ({ url }: { url: string }) => {
+  const player = useVideoPlayer(url, (p) => {
+    p.loop = true;
+  });
+
+  const { isPlaying } = useEvent(player, "playingChange", {
+    isPlaying: player.playing,
+  });
+
+  return (
+    <View style={styles.videoCard}>
+      <VideoView
+        style={styles.video}
+        player={player}
+        nativeControls={false}
+      />
+      {!isPlaying && (
+        <TouchableOpacity
+          style={styles.videoPlayOverlay}
+          onPress={() => {
+            player.play();
+          }}
+        >
+          <Ionicons name="play" size={40} color="white" />
+        </TouchableOpacity>
+      )}
+      {isPlaying && (
+        <TouchableOpacity
+          style={styles.videoPlayOverlay}
+          onPress={() => {
+            player.pause();
+          }}
+        >
+          <View style={styles.pauseIconContainer}>
+            <Ionicons name="pause" size={30} color="white" />
+          </View>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -129,10 +276,31 @@ const videocallDetails = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "white",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "white",
+  },
+  loadingText: {
+    marginTop: 10,
+    color: "#666",
+    fontSize: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorText: {
+    fontSize: 18,
+    color: "#666",
+    marginBottom: 20,
   },
   mainBackground: {
-    height: height * 0.6,
+    height: height * 0.55,
     justifyContent: "space-between",
   },
   mainBackgroundImage: {
@@ -140,152 +308,142 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 30,
   },
   header: {
-    paddingTop: 50,
+    paddingTop: 60,
     paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  backButton: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  backIcon: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
   },
   profileOverlay: {
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
     paddingHorizontal: 20,
-    paddingVertical: 25,
+    paddingVertical: 30,
+    backgroundColor: "rgba(0,0,0,0.3)",
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
   },
-  smallProfileContainer: {
-    alignSelf: "flex-start",
-    marginBottom: 15,
-  },
-  smallProfileImage: {
-    width: 70,
-    height: 70,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  smallProfileImageStyle: {
-    borderRadius: 35,
-    borderWidth: 3,
-    borderColor: "white",
+  profileDetailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   profileDetails: {
-    marginBottom: 15,
+    flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   profileName: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: "bold",
     color: "white",
-    marginBottom: 5,
-    textShadowColor: "rgba(0, 0, 0, 0.8)",
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
   },
-  profileId: {
-    fontSize: 16,
-    color: "rgba(255, 255, 255, 0.9)",
-    fontWeight: "500",
+  profileRate: {
+    fontSize: 18,
+    color: "white",
+    fontWeight: "600",
+    marginTop: 4,
   },
   bioContainer: {
+    marginTop: 15,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 25,
-    alignSelf: "flex-start",
-    backdropFilter: "blur(10px)",
+    padding: 12,
+    borderRadius: 15,
   },
   bioText: {
     color: "white",
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 15,
+    lineHeight: 20,
   },
-  cardsSection: {
-    flex: 1,
-    paddingTop: 30,
+  section: {
+    marginTop: 25,
     paddingHorizontal: 20,
   },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 20,
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    gap: 8,
   },
-  cardsContainer: {
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1D1D1F",
+  },
+  horizontalScroll: {
     paddingRight: 20,
   },
-  card: {
-    width: 150,
-    height: 200,
+  thumbnailCard: {
+    width: 80,
+    height: 110,
+    marginRight: 12,
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  activeThumbnail: {
+    borderColor: "#8B5CF6",
+  },
+  thumbnailImage: {
+    width: "100%",
+    height: "100%",
+  },
+  videoCard: {
+    width: 200,
+    height: 300,
     marginRight: 15,
     borderRadius: 20,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
+    backgroundColor: "#000",
   },
-  cardBackground: {
-    flex: 1,
-    justifyContent: "flex-end",
+  video: {
+    width: "100%",
+    height: "100%",
   },
-  cardImageStyle: {
-    borderRadius: 20,
+  videoPlayOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.3)",
   },
-  cardOverlay: {
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    paddingVertical: 15,
-    paddingHorizontal: 15,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+  pauseIconContainer: {
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 25,
+    padding: 10,
   },
-  cardTitle: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
-    textAlign: "center",
+  floatingButtonContainer: {
+    position: "absolute",
+    bottom: 30,
+    left: 20,
+    right: 20,
   },
-  buttonContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 5,
-    paddingBottom: 35,
-  },
-  messageButton: {
-    backgroundColor: "#8B5CF6",
-    paddingVertical: 18,
-    paddingHorizontal: 30,
-    borderRadius: 30,
+  videoCallButton: {
+    backgroundColor: "#10B981",
+    height: 65,
+    borderRadius: 32.5,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#8B5CF6",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
+    gap: 12,
     elevation: 8,
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
   },
-  messageButtonIcon: {
-    fontSize: 20,
-    marginRight: 10,
-  },
-  messageButtonText: {
+  videoCallButtonText: {
     color: "white",
-    fontSize: 18,
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+  backButton: {
+    backgroundColor: "#8B5CF6",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  backButtonText: {
+    color: "white",
     fontWeight: "bold",
   },
 });

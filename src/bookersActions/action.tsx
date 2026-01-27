@@ -51,7 +51,7 @@ export const fetchSingleOs = async (osId: number) => {
       image_url
     ),
     pricing_settings(price_per_night),
-    availability_slots(available_date, time_slots)
+    availability_slots(id, available_date, time_slots)
   `
     )
     .eq("role", "os")
@@ -62,7 +62,39 @@ export const fetchSingleOs = async (osId: number) => {
     console.log("Error fetching OS profiles:", error);
     return { success: false, error: error.message };
   }
-  console.log("the  available slots", data.availability_slots);
+
+  return { success: true, data };
+};
+
+export const fetchOsByUserId = async (userId: string) => {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(
+      `
+    id,
+    user_id,
+    email,
+    role,
+    osprofile(
+    is_available,
+    full_name,
+    videos_urls,
+    nickname,
+    featured,
+      bio,
+      image_url
+    ),
+    pricing_settings(price_per_night)
+  `
+    )
+    .eq("role", "os")
+    .eq("user_id", userId)
+    .single();
+
+  if (error) {
+    console.log("Error fetching OS profile by userId:", error);
+    return { success: false, error: error.message };
+  }
 
   return { success: true, data };
 };

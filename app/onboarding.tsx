@@ -13,8 +13,9 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -102,7 +103,7 @@ export default function Onboarding() {
                     keyExtractor={(item) => item.id}
                 />
 
-                <View style={styles.footer}>
+                <SafeAreaView style={styles.footer}>
                     {/* Pagination Dots */}
                     <View style={styles.pagination}>
                         {slides.map((_, index) => (
@@ -128,7 +129,7 @@ export default function Onboarding() {
                             </Text>
                         </TouchableOpacity>
                     </View>
-                </View>
+                </SafeAreaView>
             </View>
         </ScreenWrapper>
     );
@@ -168,10 +169,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
     },
     footer: {
-        height: hp(20),
         justifyContent: "space-between",
         paddingHorizontal: 20,
-        paddingBottom: 20,
+        paddingBottom: 10,
+        paddingTop: 10,
     },
     pagination: {
         flexDirection: "row",

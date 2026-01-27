@@ -2,12 +2,21 @@ import { supabase } from "@/lib/supabase";
 import useLocationEnforcer from "@/src/components/useLocationEnforcer";
 import { theme } from "@/src/constants/themes";
 import { AppProvider, useApp } from "@/store";
+import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { StreamVideo } from "@stream-io/video-react-native-sdk";
 import { useAudioPlayer } from "expo-audio";
 import { Stack, useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { ActivityIndicator, Alert, Text, View } from "react-native";
 import { PaystackProvider } from "react-native-paystack-webview";
+
+const customTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: "white", // Prevent system background from showing through as different colors
+  },
+};
 
 const ringtone = require("@/assets/audio/ringtone.mp3");
 
@@ -169,47 +178,34 @@ function RootLayoutContent() {
 
   // render role-based layout
   return (
-    <PaystackProvider
-      key={refreshKey}
-      debug
-      publicKey={
-        process.env.EXPO_PAYSTACK_PUBLIC_KEY ||
-        "pk_test_ece223e8c61258f8576a6c31eadf3874e4e54d0c"
-      }
-      defaultChannels={["bank", "card", "bank_transfer", "mobile_money"]}
-    >
-      {client ? (
-        <StreamVideo client={client}>
-          {role === "booker" && (
+    <ThemeProvider value={customTheme}>
+      <PaystackProvider
+        debug
+        publicKey={
+          process.env.EXPO_PAYSTACK_PUBLIC_KEY ||
+          "pk_test_ece223e8c61258f8576a6c31eadf3874e4e54d0c"
+        }
+        defaultChannels={["bank", "card", "bank_transfer", "mobile_money"]}
+      >
+        {client ? (
+          <StreamVideo client={client}>
             <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="login" />
               <Stack.Screen name="(BookersTabs)" />
-            </Stack>
-          )}
-          {role === "os" && (
-            <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(OSTabs)" />
             </Stack>
-          )}
-          {!role && (
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="login" />
-            </Stack>
-          )}
-        </StreamVideo>
-      ) : (
-        <Stack screenOptions={{ headerShown: false }}>
-          {role === "booker" && <Stack.Screen name="(BookersTabs)" />}
-          {role === "os" && <Stack.Screen name="(OSTabs)" />}
-          {!role && (
-            <>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="login" />
-            </>
-          )}
-        </Stack>
-      )}
-    </PaystackProvider>
+          </StreamVideo>
+        ) : (
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="login" />
+            <Stack.Screen name="(BookersTabs)" />
+            <Stack.Screen name="(OSTabs)" />
+          </Stack>
+        )}
+      </PaystackProvider>
+    </ThemeProvider>
   );
 }
 

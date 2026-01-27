@@ -1,8 +1,8 @@
 import { supabase } from "@/lib/supabase";
-import { transactions } from "@/mockData";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import TransactionItem from "@/src/components/TransactionItem";
 import { useApp } from "@/store";
+import { Transaction } from "@/tsx-types";
 import { useRouter } from "expo-router";
 import { Wallet } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
@@ -17,25 +17,57 @@ import {
 
 export default function WalletScreen() {
   const [balance, setBalance] = useState(0);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const { userSession, role } = useApp();
+  const { userSession } = useApp();
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchWalletBalance = async () => {
+  const fetchTransactions = async (userId: string) => {
     try {
-      setLoading(true);
+      const { data, error } = await supabase
+        .from("wallet_transactions")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
 
-      // ✅ get current user
-
-      const userId = userSession?.user?.id;
-
-      if (!userId) {
-        console.log("User not logged in:");
-        setLoading(false);
-        return;
+      if (error) {
+        console.error("Error fetching transactions:", error);
+      } else {
+        const formattedTransactions: Transaction[] = (data || []).map((t: any) => ({
+          id: t.id,
+          type: t.type,
+          amount: Math.abs(t.amount),
+          description: t.description,
+          date: new Date(t.created_at).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          status: "completed", // Default status as it's not in the DB schema provided
+        }));
+        setTransactions(formattedTransactions);
       }
+    } catch (err) {
+      console.error("Unexpected error fetching transactions:", err);
+    }
+  };
 
+  const fetchAllData = async () => {
+    const userId = userSession?.user?.id;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    await Promise.all([fetchWalletBalance(userId), fetchTransactions(userId)]);
+    setLoading(false);
+  };
+
+  const fetchWalletBalance = async (userId: string) => {
+    try {
       // ✅ fetch wallet balance
       const { data, error } = await supabase
         .from("wallets")
@@ -44,25 +76,23 @@ export default function WalletScreen() {
         .single();
 
       if (error) {
-        console.error("Error fetching wallet:", error);
+        console.error("Error fetching wallet balance:", error);
       } else {
         setBalance(data.balance);
       }
     } catch (err) {
       console.error("Unexpected error fetching wallet:", err);
-    } finally {
-      setLoading(false);
     }
   };
 
-  // ✅ Fetch balance on mount
+  // ✅ Fetch data on mount
   useEffect(() => {
-    fetchWalletBalance();
-  }, []);
+    fetchAllData();
+  }, [userSession?.user?.id]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchWalletBalance();
+    await fetchAllData();
     setRefreshing(false);
   };
 
@@ -110,9 +140,19 @@ export default function WalletScreen() {
             <Text style={styles.transactionsTitle}>Recent Transactions</Text>
           </View>
 
-          {transactions.map((item) => (
-            <TransactionItem key={item.id} item={item} />
-          ))}
+          {loading ? (
+            <View style={{ padding: 20 }}>
+              <Text style={{ textAlign: 'center', color: '#6b7280' }}>Loading transactions...</Text>
+            </View>
+          ) : transactions.length > 0 ? (
+            transactions.map((item) => (
+              <TransactionItem key={item.id} item={item} />
+            ))
+          ) : (
+            <View style={{ padding: 20 }}>
+              <Text style={{ textAlign: 'center', color: '#6b7280' }}>No transactions found</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </ScreenWrapper>

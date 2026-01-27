@@ -42,9 +42,9 @@ const Settings = () => {
             />
             <SettingsItem
               icon="lock"
-              title="Privacy & Security"
+              title="Privacy & Policy"
               subtitle="Manage your privacy settings"
-              onPress={() => console.log("Privacy & Security")}
+              onPress={() => router.push("/PrivacyPolicy")}
             />
             <SettingsItem
               icon="key"
@@ -97,19 +97,19 @@ const Settings = () => {
               icon="help-circle"
               title="Help Center"
               subtitle="Get help and support"
-              onPress={() => console.log("Help Center")}
+              onPress={() => router.push("/HelpCenter")}
             />
             <SettingsItem
               icon="email"
               title="Contact Us"
               subtitle="Send us your feedback"
-              onPress={() => console.log("Contact Us")}
+              onPress={() => router.push("/ContactUs")}
             />
             <SettingsItem
               icon="information"
               title="About"
               subtitle="App version and info"
-              onPress={() => console.log("About")}
+              onPress={() => router.push("/AboutUs")}
             />
           </View>
         </View>

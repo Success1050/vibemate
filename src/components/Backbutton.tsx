@@ -6,13 +6,14 @@ import { theme } from "../constants/themes";
 
 type backbutton = {
   router: Router;
-  size: number;
+  size?: number;
+  color?: string;
 };
 
-const Backbutton = ({ router, size = 24 }: backbutton) => {
+const Backbutton = ({ router, size = 24, color = "black" }: backbutton) => {
   return (
     <Pressable onPress={() => router.back()} style={styles.button}>
-      <Ionicons name="chevron-back" size={size} color="black" />
+      <Ionicons name="chevron-back" size={size} color={color} />
     </Pressable>
   );
 };

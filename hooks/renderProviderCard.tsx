@@ -2,7 +2,6 @@ import { ProviderCard } from "@/tsx-types";
 import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { Crown } from "lucide-react-native";
-import { useCallback } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const getStatusColor = (status: boolean) => {
@@ -27,54 +26,54 @@ const getStatusText = (status: boolean) => {
   }
 };
 
-export const renderProviderCard = useCallback(
-  (provider: ProviderCard, isHorizontal = false): React.ReactElement => (
-    <View style={[styles.card, isHorizontal && styles.horizontalCard]}>
-      <Image
-        source={provider.image}
-        style={styles.cardImage}
-        contentFit="cover"
-        transition={300}
-      />
-      <View
-        style={[
-          styles.statusBadge,
-          { backgroundColor: getStatusColor(provider.is_available) },
-        ]}
-      >
-        <View style={styles.statusDot} />
-        <Text style={styles.statusText}>
-          {getStatusText(provider.is_available)}
-        </Text>
+export const renderProviderCard = (
+  provider: ProviderCard,
+  isHorizontal = false
+): React.ReactElement => (
+  <View style={[styles.card, isHorizontal && styles.horizontalCard]}>
+    <Image
+      source={provider.image}
+      style={styles.cardImage}
+      contentFit="cover"
+      transition={300}
+    />
+    <View
+      style={[
+        styles.statusBadge,
+        { backgroundColor: getStatusColor(provider.is_available) },
+      ]}
+    >
+      <View style={styles.statusDot} />
+      <Text style={styles.statusText}>
+        {getStatusText(provider.is_available)}
+      </Text>
+    </View>
+    {provider.featured && (
+      <View style={styles.featuredBadge}>
+        <Crown size={12} color="#fff" />
+        <Text style={styles.featuredText}>Featured</Text>
       </View>
-      {provider.featured && (
-        <View style={styles.featuredBadge}>
-          <Crown size={12} color="#fff" />
-          <Text style={styles.featuredText}>Featured</Text>
-        </View>
-      )}
-      <View style={styles.cardContent}>
-        <Text style={styles.cardTitle}>{provider.name}</Text>
-        <Text style={styles.cardDescription}>{provider.bio}</Text>
-        <View style={styles.cardFooter}>
-          {/* <View style={styles.rating}>
+    )}
+    <View style={styles.cardContent}>
+      <Text style={styles.cardTitle}>{provider.name}</Text>
+      <Text style={styles.cardDescription}>{provider.bio}</Text>
+      <View style={styles.cardFooter}>
+        {/* <View style={styles.rating}>
             <Star size={14} color="#FBBF24" />
             <Text style={styles.ratingText}>{provider.rating}</Text>
           </View> */}
-          <Text style={styles.price}>₦{provider.price_per_night}/night</Text>
-        </View>
-        <Link
-          href={{ pathname: "/BookingDetails", params: { id: provider.id } }}
-          asChild
-        >
-          <TouchableOpacity style={styles.bookButton}>
-            <Text style={styles.bookButtonText}>Book Session</Text>
-          </TouchableOpacity>
-        </Link>
+        <Text style={styles.price}>₦{provider.price_per_night}/night</Text>
       </View>
+      <Link
+        href={{ pathname: "/BookingDetails", params: { id: provider.id } }}
+        asChild
+      >
+        <TouchableOpacity style={styles.bookButton}>
+          <Text style={styles.bookButtonText}>Book Session</Text>
+        </TouchableOpacity>
+      </Link>
     </View>
-  ),
-  []
+  </View>
 );
 
 const styles = StyleSheet.create({

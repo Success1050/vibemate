@@ -112,14 +112,6 @@ const BookingsScreen = () => {
         });
     };
 
-    if (loading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#4F46E5" />
-            </View>
-        );
-    }
-
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
@@ -128,73 +120,79 @@ const BookingsScreen = () => {
                 <Text style={styles.headerTitle}>My Bookings</Text>
             </View>
 
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                }
-                showsVerticalScrollIndicator={false}
-            >
-                {bookings.length === 0 ? (
-                    <View style={styles.emptyContainer}>
-                        <Ionicons name="calendar-outline" size={64} color="#9CA3AF" />
-                        <Text style={styles.emptyText}>No bookings yet</Text>
-                    </View>
-                ) : (
-                    bookings.map((item) => {
-                        const statusStyle = getStatusContent(item.rejected, item.status);
-                        const providerName = item?.profiles?.username || "Service Provider";
-                        const providerImage = item?.profiles?.profile_img.trim().replace(/^["']|["']$/g, '').split(',')[0].trim().replace(/['"]+/g, '') || "https://via.placeholder.com/150";
+            {loading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#4F46E5" />
+                </View>
+            ) : (
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    }
+                    showsVerticalScrollIndicator={false}
+                >
+                    {bookings.length === 0 ? (
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="calendar-outline" size={64} color="#9CA3AF" />
+                            <Text style={styles.emptyText}>No bookings yet</Text>
+                        </View>
+                    ) : (
+                        bookings.map((item) => {
+                            const statusStyle = getStatusContent(item.rejected, item.status);
+                            const providerName = item?.profiles?.username || "Service Provider";
+                            const providerImage = item?.profiles?.profile_img.trim().replace(/^["']|["']$/g, '').split(',')[0].trim().replace(/['"]+/g, '') || "https://via.placeholder.com/150";
 
-                        return (
-                            <View key={item.id} style={styles.card}>
-                                {/* Status Tag */}
-                                <View style={styles.statusContainer}>
-                                    <View style={[styles.statusTag, { backgroundColor: statusStyle.bg }]}>
-                                        <View style={[styles.statusDot, { backgroundColor: statusStyle.dotColor }]} />
-                                        <Text style={[styles.statusText, { color: statusStyle.color }]}>
-                                            {statusStyle.label}
-                                        </Text>
+                            return (
+                                <View key={item.id} style={styles.card}>
+                                    {/* Status Tag */}
+                                    <View style={styles.statusContainer}>
+                                        <View style={[styles.statusTag, { backgroundColor: statusStyle.bg }]}>
+                                            <View style={[styles.statusDot, { backgroundColor: statusStyle.dotColor }]} />
+                                            <Text style={[styles.statusText, { color: statusStyle.color }]}>
+                                                {statusStyle.label}
+                                            </Text>
+                                        </View>
+                                        <Text style={styles.dateText}>{formatDate(item.booking_date)}</Text>
                                     </View>
-                                    <Text style={styles.dateText}>{formatDate(item.booking_date)}</Text>
+
+                                    {/* Provider Info */}
+                                    <View style={styles.providerSection}>
+                                        <Image source={{ uri: providerImage }} style={styles.providerImage} />
+                                        <View style={styles.providerInfo}>
+                                            <Text style={styles.providerName}>{providerName}</Text>
+                                            {/* <Text style={styles.serviceText}>Standard Service</Text> */}
+                                        </View>
+                                        <Text style={styles.amount}>₦{item.total_amount.toLocaleString()}</Text>
+                                    </View>
+
+                                    <View style={styles.divider} />
+
+                                    {/* Hotel Info */}
+                                    <View style={styles.detailsSection}>
+                                        <View style={styles.detailRow}>
+                                            <Ionicons name="business" size={16} color="#6B7280" />
+                                            <Text style={styles.detailText}>{item.hotel || "Hotel not selected"}</Text>
+                                        </View>
+                                        <View style={styles.detailRow}>
+                                            <Ionicons name="location" size={16} color="#6B7280" />
+                                            <Text style={styles.detailText} numberOfLines={1}>
+                                                {item.hotel_location || "Location not specified"}
+                                            </Text>
+                                        </View>
+                                        <View style={styles.detailRow}>
+                                            <Ionicons name="time" size={16} color="#6B7280" />
+                                            <Text style={styles.detailText}>
+                                                {item.start_time} - {item.end_time}
+                                            </Text>
+                                        </View>
+                                    </View>
                                 </View>
-
-                                {/* Provider Info */}
-                                <View style={styles.providerSection}>
-                                    <Image source={{ uri: providerImage }} style={styles.providerImage} />
-                                    <View style={styles.providerInfo}>
-                                        <Text style={styles.providerName}>{providerName}</Text>
-                                        {/* <Text style={styles.serviceText}>Standard Service</Text> */}
-                                    </View>
-                                    <Text style={styles.amount}>₦{item.total_amount.toLocaleString()}</Text>
-                                </View>
-
-                                <View style={styles.divider} />
-
-                                {/* Hotel Info */}
-                                <View style={styles.detailsSection}>
-                                    <View style={styles.detailRow}>
-                                        <Ionicons name="business" size={16} color="#6B7280" />
-                                        <Text style={styles.detailText}>{item.hotel || "Hotel not selected"}</Text>
-                                    </View>
-                                    <View style={styles.detailRow}>
-                                        <Ionicons name="location" size={16} color="#6B7280" />
-                                        <Text style={styles.detailText} numberOfLines={1}>
-                                            {item.hotel_location || "Location not specified"}
-                                        </Text>
-                                    </View>
-                                    <View style={styles.detailRow}>
-                                        <Ionicons name="time" size={16} color="#6B7280" />
-                                        <Text style={styles.detailText}>
-                                            {item.start_time} - {item.end_time}
-                                        </Text>
-                                    </View>
-                                </View>
-                            </View>
-                        );
-                    })
-                )}
-            </ScrollView>
+                            );
+                        })
+                    )}
+                </ScrollView>
+            )}
         </View>
     );
 };

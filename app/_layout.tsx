@@ -24,54 +24,8 @@ function RootLayoutContent() {
   const router = useRouter();
   const { userSession, role, client, loading, error, refreshKey } = useApp();
 
-  // loading / auth guards same as before ...
-  if (loading) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: theme.colors.activetabbarcolor,
-        }}
-      >
-        <ActivityIndicator size="large" />
-        <Text style={{ color: "white", marginTop: 10 }}>
-          Preparing your dashboard...
-        </Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: theme.colors.activetabbarcolor,
-        }}
-      >
-        <Text style={{ color: "white" }}>Error: {error}</Text>
-      </View>
-    );
-  }
-
-  if (!userSession) {
-    return (
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="login" />
-      </Stack>
-    );
-  }
-
-  // Removed redundant role guard to prevent hanging if role fetch fails
-  // The redirect useEffect below will handle unidentified roles by sending them to login.
-
+  // 1. Hooks must be called unconditionally at the top level
   const player = useAudioPlayer(ringtone);
-
   const location = useLocationEnforcer();
 
   useEffect(() => {
@@ -80,6 +34,8 @@ function RootLayoutContent() {
 
   // role redirect
   useEffect(() => {
+    if (loading || !userSession) return;
+
     if (role === "booker") {
       router.replace("/(BookersTabs)/videocall");
     } else if (role === "os") {
@@ -87,7 +43,7 @@ function RootLayoutContent() {
     } else {
       router.replace("/login");
     }
-  }, [role]);
+  }, [role, loading, userSession]);
 
   useEffect(() => {
     if (!userSession?.user?.id) return;
@@ -106,16 +62,24 @@ function RootLayoutContent() {
           const call = payload.new;
           if (call.status === "pending") {
             // start ringing
-            player.seekTo(0);
-            player.play();
+            try {
+              player.seekTo(0);
+              player.play();
+            } catch (err) {
+              // Ignore audio errors
+            }
 
             Alert.alert("Incoming Video Call", "you have an incoming call", [
               {
                 text: "Reject",
                 style: "cancel",
                 onPress: async () => {
-                  player.pause();
-                  player.seekTo(0);
+                  try {
+                    player.pause();
+                    player.seekTo(0);
+                  } catch (e) {
+                    // Ignore audio errors
+                  }
 
                   await supabase
                     .from("video_calls")
@@ -126,8 +90,12 @@ function RootLayoutContent() {
               {
                 text: "Accept",
                 onPress: async () => {
-                  player.pause();
-                  player.seekTo(0);
+                  try {
+                    player.pause();
+                    player.seekTo(0);
+                  } catch (e) {
+                    // Ignore audio errors
+                  }
 
                   await supabase
                     .from("video_calls")
@@ -150,8 +118,13 @@ function RootLayoutContent() {
       .subscribe();
 
     return () => {
-      player.pause();
-      player.seekTo(0);
+      try {
+        // Attempt to stop the ringtone if cleanup happens
+        player.pause();
+        player.seekTo(0);
+      } catch (e) {
+        // Ignore errors if player is already released (common on unmount)
+      }
 
       supabase.removeChannel(channel);
     };
@@ -174,37 +147,70 @@ function RootLayoutContent() {
     return () => {
       setOnline(false);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userSession]);
 
-  // render role-based layout
+  // Render logic with NO early returns
   return (
     <ThemeProvider value={customTheme}>
-      <PaystackProvider
-        debug
-        publicKey={
-          process.env.EXPO_PAYSTACK_PUBLIC_KEY ||
-          "pk_test_ece223e8c61258f8576a6c31eadf3874e4e54d0c"
-        }
-        defaultChannels={["bank", "card", "bank_transfer", "mobile_money"]}
-      >
-        {client ? (
-          <StreamVideo client={client}>
+      {loading ? (
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: theme.colors.activetabbarcolor,
+          }}
+        >
+          <ActivityIndicator size="large" />
+          <Text style={{ color: "white", marginTop: 10 }}>
+            Preparing your dashboard...
+          </Text>
+        </View>
+      ) : error ? (
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: theme.colors.activetabbarcolor,
+          }}
+        >
+          <Text style={{ color: "white" }}>Error: {error}</Text>
+        </View>
+      ) : !userSession ? (
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="login" />
+        </Stack>
+      ) : (
+        <PaystackProvider
+          debug
+          publicKey={
+            process.env.EXPO_PAYSTACK_PUBLIC_KEY ||
+            "pk_test_ece223e8c61258f8576a6c31eadf3874e4e54d0c"
+          }
+          defaultChannels={["bank", "card", "bank_transfer", "mobile_money"]}
+        >
+          {client ? (
+            <StreamVideo client={client}>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="login" />
+                <Stack.Screen name="(BookersTabs)" />
+                <Stack.Screen name="(OSTabs)" />
+              </Stack>
+            </StreamVideo>
+          ) : (
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" />
               <Stack.Screen name="login" />
               <Stack.Screen name="(BookersTabs)" />
               <Stack.Screen name="(OSTabs)" />
             </Stack>
-          </StreamVideo>
-        ) : (
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="login" />
-            <Stack.Screen name="(BookersTabs)" />
-            <Stack.Screen name="(OSTabs)" />
-          </Stack>
-        )}
-      </PaystackProvider>
+          )}
+        </PaystackProvider>
+      )}
     </ThemeProvider>
   );
 }
